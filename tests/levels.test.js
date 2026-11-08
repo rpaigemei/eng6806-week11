@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { THEMES } from '../src/themes/index.js';
 import { TEMPLATES, ICONS, COLORWAYS } from '../src/render/spriteData.js';
 import { PAL } from '../src/render/palette.js';
-import { GLYPHS } from '../src/render/font.js';
 import {
   createState, moveItem, check, hint, solve, validateLevel, locate, slotRect, levelStats,
 } from '../src/engine/level.js';
@@ -102,10 +101,6 @@ test('sprite grids are well formed', () => {
     grid.forEach((row, i) => assert.equal(row.length, 7, `${name} row ${i}`));
   }
   for (const cw of Object.values(COLORWAYS)) for (const v of Object.values(cw)) assert.ok(PAL[v]);
-  for (const [ch, g] of Object.entries(GLYPHS)) {
-    assert.equal(g.length, 5, `glyph ${ch}`);
-    g.forEach((row) => assert.equal(row.length, 3, `glyph ${ch}`));
-  }
 });
 
 test('moving into a full slot swaps', () => {

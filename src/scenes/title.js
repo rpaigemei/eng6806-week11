@@ -44,8 +44,8 @@ export function titleScene(game) {
       drawPanel(ctx, 86, 26, 148, 66, {});
       rect(ctx, PAL.r, 87, 27, 146, 2);
       rect(ctx, PAL.g, 87, 89, 146, 1);
-      drawText(ctx, 'Cozy Holiday', 160, 36, UI.ink, { pixel: true, scale: 2, align: 'center' });
-      drawText(ctx, 'Tidy-Up', 160, 52, PAL.R, { pixel: true, scale: 3, align: 'center', shadow: PAL.p });
+      drawText(ctx, 'Cozy Holiday', 160, 36, UI.ink, { title: 2, align: 'center' });
+      drawText(ctx, 'Tidy-Up', 160, 52, PAL.R, { title: 3, align: 'center', shadow: PAL.p });
       drawText(ctx, 'sort · tidy · decorate', 160, 79, UI.inkSoft, { align: 'center', size: 8 });
 
       drawTray(ctx);

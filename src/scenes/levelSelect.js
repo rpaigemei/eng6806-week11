@@ -32,7 +32,7 @@ export function levelSelectScene(game, { themeId } = {}) {
       },
       draw: (ctx, bx, by, btn, t) => {
         const on = unlocked();
-        drawText(ctx, String(i + 1), bx + CARD_W / 2, by + 5, on ? PAL.R : UI.inkSoft, { pixel: true, scale: 2, align: 'center' });
+        drawText(ctx, String(i + 1), bx + CARD_W / 2, by + 5, on ? PAL.R : UI.inkSoft, { title: 2, align: 'center' });
         const preview = theme.catalog[level.items[0]];
         if (on) {
           const bob = btn.hover ? Math.round(Math.sin(t * 6)) : 0;
@@ -66,7 +66,7 @@ export function levelSelectScene(game, { themeId } = {}) {
       ctx.globalAlpha = 0.55;
       rect(ctx, PAL.k, 0, 0, 320, 132);
       ctx.globalAlpha = 1;
-      drawText(ctx, theme.name, 160, 8, UI.paper, { pixel: true, scale: 2, align: 'center', shadow: PAL.k });
+      drawText(ctx, theme.name, 160, 8, UI.paper, { title: 2, align: 'center', shadow: PAL.k });
       buttons.draw(ctx, t);
 
       drawTray(ctx);

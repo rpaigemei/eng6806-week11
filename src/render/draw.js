@@ -1,25 +1,5 @@
 // Text, panels and small drawing helpers.
-import { GLYPHS } from './font.js';
 import { UI, PAL } from './palette.js';
-
-const glyphCache = new Map();
-
-function glyphCanvas(ch, color) {
-  const key = ch + color;
-  let c = glyphCache.get(key);
-  if (c) return c;
-  const g = GLYPHS[ch] || GLYPHS['?'];
-  c = document.createElement('canvas');
-  c.width = 3;
-  c.height = 5;
-  const x = c.getContext('2d');
-  x.fillStyle = color;
-  g.forEach((row, r) => {
-    for (let i = 0; i < 3; i++) if (row[i] === '#') x.fillRect(i, r, 1, 1);
-  });
-  glyphCache.set(key, c);
-  return c;
-}
 
 export function rect(ctx, color, x, y, w, h) {
   ctx.fillStyle = color;
@@ -27,64 +7,54 @@ export function rect(ctx, color, x, y, w, h) {
 }
 
 // ---------- text ----------
-// Two faces: the tiny original pixel font for big decorative titles, and
-// Atkinson Hyperlegible (bundled, OFL) for everything people need to read.
-// Sizes are in logical game pixels; the canvas is drawn at full device
-// resolution, so readable text stays smooth while pixel art stays crisp.
+// All text uses VT323 (bundled, SIL OFL 1.1): a pixel-terminal face that matches
+// the art but stays easy to read. Sizes are nominal logical pixels; VT323 runs
+// small for its size, so it's drawn a bit larger. The canvas renders at full
+// device resolution, so text is sharp at every scale.
 
-const READ_FAMILY = '"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif';
-export const TAG_TEXT = { size: 7, bold: true };
+const FAMILY = '"VT323", ui-monospace, Menlo, Consolas, monospace';
+const SIZE_BOOST = 1.4;
+export const TAG_TEXT = { size: 7.5 };
 
-const fontOf = (size, bold) => `${bold ? 700 : 400} ${size}px ${READ_FAMILY}`;
+// VT323 has one weight; `bold` is accepted for call-site intent but never faked.
+const fontOf = (size) => `400 ${size * SIZE_BOOST}px ${FAMILY}`;
 let measureCtx = null;
 const clean = (str) => String(str).replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
 
+/** Big headline text: `title: n` is roughly n times body size. */
+const resolve = ({ size = 8, title = 0 }) => (title ? 7 * title : size);
+
 /** Width of a string in logical pixels. */
-export function textWidth(str, { pixel = false, scale = 1, size = 8, bold = false } = {}) {
-  str = clean(str);
-  if (pixel) return str.length ? (str.length * 4 - 1) * scale : 0;
+export function textWidth(str, opts = {}) {
   if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
-  measureCtx.font = fontOf(size, bold);
-  return measureCtx.measureText(str).width;
+  measureCtx.font = fontOf(resolve(opts));
+  return measureCtx.measureText(clean(str)).width;
 }
 
 /**
- * Draw text. Readable text is vertically centered where a 5px pixel glyph
- * starting at `y` would be. align: 'left' | 'center' | 'right'. Returns width.
+ * Draw text, vertically centered on y + 2.5 (or y + 2.5*title for headlines),
+ * which is where the game's layouts expect a line. align: 'left' | 'center' | 'right'.
+ * Returns the width.
  */
 export function drawText(ctx, str, x, y, color = UI.ink, opts = {}) {
-  const { pixel = false, scale = 1, size = 8, bold = false, align = 'left', shadow = null } = opts;
+  const { align = 'left', shadow = null, title = 0 } = opts;
   str = clean(str);
-  if (pixel) return drawPixelText(ctx, str.toUpperCase(), x, y, color, { scale, align, shadow });
-  const w = textWidth(str, { size, bold });
+  const size = resolve(opts);
+  const w = textWidth(str, opts);
   let sx = x;
   if (align === 'center') sx = x - w / 2;
   else if (align === 'right') sx = x - w;
-  ctx.font = fontOf(size, bold);
+  ctx.font = fontOf(size);
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
-  const cy = y + 2.5;
+  const cy = y + 2.5 * (title || 1);
   if (shadow) {
+    const d = title ? 1 : 0.5;
     ctx.fillStyle = shadow;
-    ctx.fillText(str, sx + 0.5, cy + 0.5);
+    ctx.fillText(str, sx + d, cy + d);
   }
   ctx.fillStyle = color;
   ctx.fillText(str, sx, cy);
-  return w;
-}
-
-function drawPixelText(ctx, str, x, y, color, { scale, align, shadow }) {
-  let sx = Math.round(x);
-  const w = textWidth(str, { pixel: true, scale });
-  if (align === 'center') sx = Math.round(x - w / 2);
-  else if (align === 'right') sx = Math.round(x - w);
-  const sy = Math.round(y);
-  if (shadow) drawPixelText(ctx, str, sx + 1, sy + 1, shadow, { scale, align: 'left' });
-  for (let i = 0; i < str.length; i++) {
-    const ch = str[i];
-    if (ch === ' ') continue;
-    ctx.drawImage(glyphCanvas(ch, color), sx + i * 4 * scale, sy, 3 * scale, 5 * scale);
-  }
   return w;
 }
 
@@ -106,13 +76,13 @@ export function wrapText(str, maxWidth, opts = {}) {
 }
 
 /** One line that fits: shrink a little, then trim with an ellipsis. Returns { text, size }. */
-export function fitText(str, maxWidth, { size = 8, minSize = 7, bold = false } = {}) {
+export function fitText(str, maxWidth, { size = 8, minSize = 7 } = {}) {
   str = clean(str);
   for (let s = size; s >= minSize; s -= 0.5) {
-    if (textWidth(str, { size: s, bold }) <= maxWidth) return { text: str, size: s };
+    if (textWidth(str, { size: s }) <= maxWidth) return { text: str, size: s };
   }
   let t = str;
-  while (t.length > 1 && textWidth(`${t}\u2026`, { size: minSize, bold }) > maxWidth) t = t.slice(0, -1);
+  while (t.length > 1 && textWidth(`${t}\u2026`, { size: minSize }) > maxWidth) t = t.slice(0, -1);
   return { text: `${t.trimEnd()}\u2026`, size: minSize };
 }
 
