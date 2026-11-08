@@ -1,7 +1,8 @@
 // Helpers shared by the puzzle and decorate scenes.
 import { PAL, UI } from '../render/palette.js';
 import { rect, drawText, fitText, hash, drawSparkle } from '../render/draw.js';
-import { itemSprite, drawItemOutlined } from '../render/sprites.js';
+import { itemSprite, drawItemOutlined, iconSprite } from '../render/sprites.js';
+import { view } from '../view.js';
 
 export const TRAY_Y = 132;
 export const PILE_W = 236;
@@ -66,7 +67,13 @@ export class Glide {
   }
 }
 
-export function drawItem(ctx, item, x, y, { outline = null, lifted = false } = {}) {
+// Felt plate behind tray items: light enough that charcoal items read clearly (about 3.8:1).
+const PLATE = '#a98a74';
+const PLATE_EDGE = '#8a6c58';
+// Soft light rim so black items stand out on dark rooms.
+const DARK_RIM = '#9a90b8';
+
+export function drawItem(ctx, item, x, y, { outline = null, lifted = false, plate = false } = {}) {
   x = Math.round(x);
   y = Math.round(y);
   if (lifted) {
@@ -75,8 +82,15 @@ export function drawItem(ctx, item, x, y, { outline = null, lifted = false } = {
     ctx.globalAlpha = 1;
     y -= 3;
   }
+  if (plate) {
+    rect(ctx, PLATE_EDGE, x, y + 1, 16, 15);
+    rect(ctx, PLATE_EDGE, x + 1, y, 14, 17);
+    rect(ctx, PLATE, x + 1, y + 1, 14, 15);
+  }
+  if (!outline && item.tags.color === 'black') outline = DARK_RIM;
   if (outline) drawItemOutlined(ctx, item, x, y, outline);
   else ctx.drawImage(itemSprite(item), x, y);
+  if (view.colorAssist) ctx.drawImage(iconSprite(`swatch_${item.tags.color}`), x + 10, y + 10);
 }
 
 export function itemInfo(theme, item) {

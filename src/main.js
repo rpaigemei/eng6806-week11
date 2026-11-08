@@ -3,6 +3,7 @@ import { loadSave } from './save.js';
 import { Audio } from './audio.js';
 import { THEMES } from './themes/index.js';
 import { PAL } from './render/palette.js';
+import { view } from './view.js';
 import { titleScene } from './scenes/title.js';
 import { levelSelectScene } from './scenes/levelSelect.js';
 import { puzzleScene } from './scenes/puzzle.js';
@@ -20,6 +21,7 @@ const ctx = canvas.getContext('2d');
 let k = 1;
 
 const save = loadSave();
+view.colorAssist = !!save.colorAssist;
 const game = {
   W,
   H,

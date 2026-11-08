@@ -1,6 +1,9 @@
 // Tiny button widgets for canvas UIs.
 import { PAL, UI } from './render/palette.js';
 import { rect, drawPanel, drawText } from './render/draw.js';
+import { iconSprite } from './render/sprites.js';
+import { view } from './view.js';
+import { persist } from './save.js';
 
 export class Button {
   constructor({ x, y, w, h, label = '', onClick, style = 'wood', draw = null, enabled = () => true, visible = () => true, tip = '' }) {
@@ -130,6 +133,21 @@ export function addHud(buttons, game, { back = null } = {}) {
   if (back) {
     buttons.add({ x: 2, y: 2, w: 13, h: 12, onClick: back, draw: (ctx, x, y) => drawBackIcon(ctx, x + 2, y + 2), tip: 'Back' });
   }
+  buttons.add({
+    x: 275, y: 2, w: 13, h: 12,
+    tip: 'Color assist: show a symbol on every item for its color',
+    onClick: () => {
+      game.save.colorAssist = !game.save.colorAssist;
+      view.colorAssist = game.save.colorAssist;
+      persist(game.save);
+      game.audio.play('click');
+    },
+    draw: (ctx, x, y) => {
+      ctx.globalAlpha = game.save.colorAssist ? 1 : 0.45;
+      ctx.drawImage(iconSprite('palette'), x + 3, y + 2);
+      ctx.globalAlpha = 1;
+    },
+  });
   buttons.add({
     x: 290, y: 2, w: 13, h: 12, tip: 'Music',
     onClick: () => game.audio.setMusic(!game.save.music),

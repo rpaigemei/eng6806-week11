@@ -2,7 +2,7 @@
 // so private windows or blocked storage just mean progress isn't remembered.
 const KEY = 'cozy-holiday-tidy-up/v1';
 
-const defaults = () => ({ version: 1, solved: {}, decor: {}, music: true, sfx: true });
+const defaults = () => ({ version: 1, solved: {}, decor: {}, music: true, sfx: true, colorAssist: false });
 
 export function loadSave() {
   try {

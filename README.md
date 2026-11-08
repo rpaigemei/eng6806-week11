@@ -15,7 +15,12 @@ A cozy pixel-art sorting puzzle for the web. The holiday decorations got jumbled
   - `MAX 1`
   - `APART` (neighbors can't match, so order matters)
 - **Every room has exactly one solution** and can be solved by reasoning alone, with no guessing. A test checks this.
-- **Hints** point at an item that's in the wrong spot, or one that fits somewhere useful
+- **Tiered hints:** press once to see where to look, again for which rule matters, and a third time for the exact move.
+- **A guided first room** walks new players through their first drag, reading a tag, and pressing Done.
+- **Color-blind friendly:**
+  - every color has its own symbol on the tags (heart = red, tree = green, drop = blue, star = gold, circle = orange, diamond = purple, ring = white, cross = black, square = brown)
+  - the **Color assist** toggle (palette button, top right) shows that symbol on every item too
+- **Clear labels:** every tag hangs from its spot on a little string, and hovering a tag outlines its spot.
 - **Decorate mode** opens once a room is solved, so you can place things anywhere
 - **Progress, music and sound settings are saved** in your browser (`localStorage` only, nothing is sent anywhere)
 - Works with a **mouse or touch**, with crisp pixel scaling on phones
@@ -46,6 +51,14 @@ The tests use Node's built-in test runner (Node 18+, no dependencies). They chec
 - following the hints solves each level from scrambled starting states
 - all sprite grids are well formed
 
+### Tag layout
+
+```bash
+npm run test:layout
+```
+
+This loads every room in headless Chromium (it needs Playwright) and checks that each tag is closer to its own spot than to any other, doesn't overlap other spots or tags, and stays on screen.
+
 ### Level difficulty
 
 ```bash
@@ -57,6 +70,7 @@ This prints each level's number of solutions (aim for 1), plus three difficulty 
 - **ambiguous:** how many items fit more than one tag
 - **naive:** how much a player who only looks for "this has one spot" can place
 - **fair:** how much a careful reasoner can place without guessing (must be 100%)
+- **difficulty:** depth + 2 × "what if?" steps. A test checks that it never dips within a holiday.
 
 ## Deploy to GitHub Pages
 

@@ -311,6 +311,7 @@ export function deduce(level, catalog) {
   };
 
   let rounds = 0;
+  let lookaheads = 0;
   for (;;) {
     let progressed = false;
     for (const id of [...left]) {
@@ -334,6 +335,7 @@ export function deduce(level, catalog) {
           const c = { ...contents, [s.id]: [...contents[s.id], catalog[id]] };
           if (!consistent(c, [...left].filter((x) => x !== id))) {
             banned.get(id).add(s.id);
+            lookaheads++;
             progressed = true;
           }
         }
@@ -342,7 +344,7 @@ export function deduce(level, catalog) {
     if (!progressed) break;
     rounds++;
   }
-  return { share: 1 - left.size / level.items.length, rounds };
+  return { share: 1 - left.size / level.items.length, rounds, lookaheads };
 }
 
 /** Difficulty numbers used by tests and tools/levelstats.js. */
@@ -356,6 +358,9 @@ export function levelStats(level, catalog) {
     naive: naive.share,
     fair: smart.share,
     depth: smart.rounds,
+    lookaheads: smart.lookaheads,
+    // "what if?" eliminations are the hardest steps for people, so they count double
+    difficulty: smart.rounds + 2 * smart.lookaheads,
   };
 }
 
