@@ -1,6 +1,6 @@
 import { PAL } from '../../render/palette.js';
 import { CATALOG, VOCAB, iconFor } from './catalog.js';
-import { LEVELS } from './levels.js';
+import { LEVELS, BONUS } from './levels.js';
 import { BACKDROPS, windowScene } from './backdrops.js';
 import { HALLOWEEN_SONG } from '../../songs.js';
 
@@ -12,6 +12,8 @@ export const HALLOWEEN = {
   vocab: VOCAB,
   iconFor,
   levels: LEVELS,
+  // extra-hard room, unlocked with stars (not needed to open the next holiday)
+  bonus: BONUS,
   backdrops: BACKDROPS,
   selectBackdrop: 'parlor',
   // finale confetti

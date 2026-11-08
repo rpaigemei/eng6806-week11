@@ -106,3 +106,26 @@ export const LEVELS = [
     ],
   },
 ];
+
+/**
+ * Bonus room (unlocks with 12 Halloween stars). Same, No, Big, Apart + Max,
+ * a frozen orange candle, and a black cat tied to a ghost.
+ */
+export const BONUS = {
+  id: 'halloween-bonus',
+  title: 'Moonlit Garden',
+  backdrop: 'garden',
+  cover: 'cat',
+  intro:
+    'Bonus room! Frozen things, ribbons and the trickiest tags, all under one big moon. Count your colors and kinds, then ask "what if?".',
+  items: ['candle_orange', 'skull', 'candle_purple', 'potion_orange', 'cat', 'ghost', 'candle_bone', 'hat_black', 'pumpkin_orange', 'hat_purple', 'hat_green', 'bat_purple', 'pumpkin_purple', 'candy_orange'],
+  pinned: { candle_orange: 'post' },
+  pairs: [['cat', 'ghost']],
+  slots: [
+    { id: 'wall', name: 'Stone wall', x: 18, y: 70, capacity: 3, style: 'none', rules: [R.allSame('color')] },
+    { id: 'arch', name: 'Garden arch', x: 134, y: 20, capacity: 3, style: 'none', rules: [R.allSame('color'), R.not(R.is('category', 'lantern'))], tag: { x: 130, y: 23, align: 'right' } },
+    { id: 'bench', name: 'Bench', x: 134, y: 87, capacity: 3, style: 'none', rules: [R.allSame('category')] },
+    { id: 'post', name: 'Lantern post', x: 250, y: 45, capacity: 2, style: 'none', rules: [R.is('size', 'big')] },
+    { id: 'bed', name: 'Flower bed', x: 236, y: 99, capacity: 3, style: 'none', rules: [R.noAdjacent('color'), R.countAtMost('category', 'critter', 1)] },
+  ],
+};

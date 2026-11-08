@@ -93,3 +93,26 @@ export const LEVELS = [
     ],
   },
 ];
+
+/**
+ * Bonus room (unlocks with 12 Winter stars). Combines everything: Same, No,
+ * Big, Apart + Max, a frozen berry star and a ribbon-tied candle and gift.
+ */
+export const BONUS = {
+  id: 'winter-bonus',
+  title: 'Frosty Porch',
+  backdrop: 'frostyPorch',
+  cover: 'snowman',
+  intro:
+    'Bonus room! Every trick at once: frozen things, ribbons, and the hardest tags. Count, ask "what if?", and take your time.',
+  items: ['ribbon_green', 'stocking_red', 'candle_red', 'gift_green', 'bell_red', 'lights_red', 'lights_warm', 'orn_white', 'snowman', 'bell_blue', 'bell_gold', 'star_white', 'star_red', 'gift_red'],
+  pinned: { star_red: 'hooks' },
+  pairs: [['candle_red', 'gift_green']],
+  slots: [
+    { id: 'box', name: 'Window box', x: 28, y: 46, capacity: 3, style: 'none', rules: [R.allSame('color')] },
+    { id: 'bench', name: 'Bench', x: 24, y: 79, capacity: 3, style: 'none', rules: [R.allSame('color'), R.not(R.is('category', 'ornament'))], tag: { x: 50, y: 108, align: 'center' } },
+    { id: 'rail', name: 'Railing', x: 238, y: 63, capacity: 3, style: 'none', rules: [R.allSame('category')] },
+    { id: 'hooks', name: 'Door hooks', x: 143, y: 52, capacity: 2, style: 'hooks', rules: [R.is('size', 'big')] },
+    { id: 'steps', name: 'Steps', x: 134, y: 106, capacity: 3, style: 'none', rules: [R.noAdjacent('color'), R.countAtMost('category', 'bell', 1)], tag: { x: 190, y: 109, align: 'left' } },
+  ],
+};

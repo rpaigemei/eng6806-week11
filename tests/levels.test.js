@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { THEMES, roomNumber } from '../src/themes/index.js';
+import { THEMES, roomNumber, allLevels } from '../src/themes/index.js';
 import { isThemeUnlocked } from '../src/save.js';
 import { TEMPLATES, ICONS, COLORWAYS, COLOR_SYMBOLS } from '../src/render/spriteData.js';
 import { PAL } from '../src/render/palette.js';
@@ -46,7 +46,7 @@ const RAMP = {
 };
 
 for (const theme of THEMES) {
-  for (const level of theme.levels) {
+  for (const level of allLevels(theme)) {
     test(`${level.id} is valid and solvable`, () => {
       assert.deepEqual(validateLevel(level, theme.catalog), []);
     });
@@ -155,6 +155,16 @@ test("items are drawn in the color they're tagged with", () => {
   }
 });
 
+for (const theme of THEMES) {
+  test(`${theme.id}: the bonus room is at least as hard as the finale`, () => {
+    const finale = levelStats(theme.levels[theme.levels.length - 1], theme.catalog).difficulty;
+    const bonus = levelStats(theme.bonus, theme.catalog).difficulty;
+    assert.ok(bonus >= finale, `bonus ${bonus} < finale ${finale}`);
+    assert.ok(Object.keys(theme.bonus.pinned || {}).length && (theme.bonus.pairs || []).length, 'bonus uses both twists');
+    assert.ok(theme.backdrops[theme.bonus.backdrop], 'bonus backdrop exists');
+  });
+}
+
 test('every holiday has 5 rooms, unique ids, and title-screen pieces', () => {
   const ids = new Set();
   for (const theme of THEMES) {
@@ -172,7 +182,7 @@ test('every holiday has 5 rooms, unique ids, and title-screen pieces', () => {
 
 test('spots are never cramped together (drop targets stay unambiguous)', () => {
   for (const theme of THEMES) {
-    for (const level of theme.levels) {
+    for (const level of allLevels(theme)) {
       const rects = level.slots.map((s) => ({ id: s.id, ...slotRect(s) }));
       for (let i = 0; i < rects.length; i++) {
         for (let j = i + 1; j < rects.length; j++) {
