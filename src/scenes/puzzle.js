@@ -134,15 +134,20 @@ export function puzzleScene(game, { levelId }) {
     if (res.solved) return celebrate();
     game.audio.play('wrong');
     for (const v of res.violations) {
-      wiggle[v.itemId] = 1;
       const slot = getSlot(state, v.slotId);
+      // slot-level problems (e.g. "MIN 1 bell") make the whole spot wiggle
+      for (const id of v.itemId ? [v.itemId] : slot.items) wiggle[id] = 1;
       const f = flash[v.slotId] || { rules: new Set(), until: 0 };
       v.rules.forEach((r) => f.rules.add(slot.rules.indexOf(r)));
       f.until = t + 2.5;
       flash[v.slotId] = f;
     }
-    const n = res.violations.length;
-    say(`Hmm, ${n} thing${n > 1 ? 's don’t' : ' doesn’t'} fit ${n > 1 ? 'their spots' : 'its spot'} yet.`, PAL.p);
+    const n = res.violations.filter((v) => v.itemId).length;
+    const spots = res.violations.filter((v) => !v.itemId).length;
+    const parts = [];
+    if (n) parts.push(`${n} thing${n > 1 ? 's' : ''} break${n > 1 ? '' : 's'} a rule`);
+    if (spots) parts.push(`${spots} spot${spots > 1 ? 's are' : ' is'} missing something`);
+    say(`Hmm, ${parts.join(' and ')}.`, PAL.p);
   }
 
   function onHint() {
@@ -156,7 +161,23 @@ export function puzzleScene(game, { levelId }) {
     } else if (h.type === 'place') {
       say(`Try the ${item.name.toLowerCase()} in the ${slot.name.toLowerCase()}.`, PAL.o);
     } else if (h.type === 'move') {
-      say(`The ${item.name.toLowerCase()} is needed in the ${slot.name.toLowerCase()}.`, PAL.o);
+      const from = getSlot(state, h.from);
+      say(
+        slot
+          ? `The ${item.name.toLowerCase()} is needed in the ${slot.name.toLowerCase()}.`
+          : `The ${item.name.toLowerCase()} doesn't belong in the ${from.name.toLowerCase()}.`,
+        PAL.o
+      );
+    } else if (h.type === 'needs') {
+      const from = getSlot(state, h.from);
+      say(`The ${from.name.toLowerCase()} needs ${describe(h.rule, vocab)}.`, PAL.o);
+      flash[from.id] = { rules: new Set([from.rules.indexOf(h.rule)]), until: t + 3 };
+      highlight = { itemId: h.itemId, slotId: from.id, until: t + 4 };
+      return;
+    } else if (h.type === 'reorder') {
+      say(`Right things, wrong order: rearrange the ${slot.name.toLowerCase()}.`, PAL.o);
+      const ri = slot.rules.findIndex((r) => r.op === 'noAdjacent');
+      flash[slot.id] = { rules: new Set([ri]), until: t + 3 };
     } else {
       say('Everything looks right. Press DONE!', PAL.o);
     }

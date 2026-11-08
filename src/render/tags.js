@@ -6,6 +6,12 @@ import { slotWidth } from './scenery.js';
 
 const CHIP_H = 11;
 
+/** Which attribute a group rule talks about: a color palette icon, or a word. */
+function attrPart(attr) {
+  if (attr === 'color') return { kind: 'icon', spec: { icon: 'palette' } };
+  return { kind: 'text', s: attr === 'category' ? 'KIND' : attr.toUpperCase() };
+}
+
 function rawParts(rule) {
   switch (rule.op) {
     case 'is':
@@ -23,6 +29,14 @@ function rawParts(rule) {
       return rule.rules.flatMap((r, i) => [...(i ? [{ kind: 'text', s: '/' }] : []), ...rawParts(r)]);
     case 'countAtMost':
       return [{ kind: 'text', s: `MAX ${rule.n}` }, { kind: 'icon', attr: rule.attr, value: rule.value }];
+    case 'countAtLeast':
+      return [{ kind: 'text', s: `MIN ${rule.n}` }, { kind: 'icon', attr: rule.attr, value: rule.value }];
+    case 'allDifferent':
+      return [{ kind: 'text', s: 'MIXED' }, attrPart(rule.attr)];
+    case 'allSame':
+      return [{ kind: 'text', s: 'SAME' }, attrPart(rule.attr)];
+    case 'noAdjacent':
+      return [{ kind: 'text', s: 'APART' }, attrPart(rule.attr)];
     default:
       return [{ kind: 'text', s: '?' }];
   }
@@ -30,11 +44,19 @@ function rawParts(rule) {
 
 /** Resolve icon parts through the theme; some tag values render as words. */
 function parts(rule, theme) {
-  return rawParts(rule).map((p) => {
-    if (p.kind !== 'icon') return p;
+  const resolved = rawParts(rule).map((p) => {
+    if (p.kind !== 'icon' || p.spec) return p;
     const spec = theme.iconFor(p.attr, p.value);
     return spec.text ? { kind: 'text', s: spec.text } : { ...p, spec };
   });
+  // "SAME" + "KIND" -> "SAME KIND"
+  const out = [];
+  for (const p of resolved) {
+    const prev = out[out.length - 1];
+    if (p.kind === 'text' && prev?.kind === 'text') out[out.length - 1] = { kind: 'text', s: `${prev.s} ${p.s}` };
+    else out.push(p);
+  }
+  return out;
 }
 
 const partW = (p) => (p.kind === 'icon' ? 7 : textWidth(p.s));

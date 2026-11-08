@@ -299,6 +299,7 @@ export const ICONS = {
   cat_treat: ['..kkk..', '.krwrk.', '.kk.krk', '....kwk', '....krk', '....kwk', '....kkk'],
   cat_nature: ['...k...', '..knk..', '.knNnk.', '.kNnNk.', '.knNnk.', '..kNk..', '...k...'],
   cat_gift: ['..k.k..', '...k...', 'kkkkkkk', 'k11y11k', 'kyyyyyk', 'k11y11k', 'kkkkkkk'],
+  palette: ['.kkkkk.', 'krrkyyk', 'krrkyyk', 'kkkkkkk', 'kbbkggk', 'kbbkggk', '.kkkkk.'],
   lock: ['..kkk..', '.k...k.', '.k...k.', 'kkkkkkk', 'kyyyyyk', 'kyykyyk', 'kkkkkkk'],
   bigStar: ['...k...', '..kyk..', 'kkkyykk', 'kyyyyyk', '.kyyyk.', '.kykyk.', '.kk.kk.'],
 };

@@ -5,8 +5,34 @@ import { TEMPLATES, ICONS, COLORWAYS } from '../src/render/spriteData.js';
 import { PAL } from '../src/render/palette.js';
 import { GLYPHS } from '../src/render/font.js';
 import {
-  createState, moveItem, check, hint, solve, validateLevel, locate, countSolutions, slotRect,
+  createState, moveItem, check, hint, solve, validateLevel, locate, slotRect, levelStats,
 } from '../src/engine/level.js';
+
+/** Apply one hint the way a player would. */
+function followHint(state, h) {
+  if (h.type === 'wrong') moveItem(state, h.itemId, null);
+  else if (h.type === 'reorder') h.order.forEach((id, i) => moveItem(state, id, h.slotId, i));
+  else moveItem(state, h.itemId, h.slotId, h.index ?? Infinity);
+}
+
+/** Deterministic scramble: drop every item into some slot with room. */
+function scramble(state, seed) {
+  let s = seed;
+  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (const id of [...state.level.items].sort(() => rnd() - 0.5)) {
+    const open = state.slots.filter((x) => x.items.length < x.capacity);
+    moveItem(state, id, open[Math.floor(rnd() * open.length)].id);
+  }
+}
+
+// Difficulty ramp: [min ambiguous share, max naive share] per room.
+const RAMP = [
+  [0.15, 1],
+  [0.5, 1],
+  [0.6, 0.75],
+  [0.65, 0.6],
+  [0.75, 0.4],
+];
 
 for (const theme of THEMES) {
   for (const level of theme.levels) {
@@ -21,20 +47,23 @@ for (const theme of THEMES) {
       }
     });
 
-    test(`${level.id}: playing the hints to the end solves it`, () => {
-      const state = createState(level, theme.catalog);
-      // Put everything in the wrong-ish first slot to make the hint work hard.
-      for (const id of level.items) {
-        const s = state.slots.find((x) => x.items.length < x.capacity);
-        moveItem(state, id, s.id);
+    test(`${level.id}: following hints solves it from any mess`, () => {
+      for (const seed of [0, 1, 7, 42, 99]) {
+        const state = createState(level, theme.catalog);
+        if (seed) scramble(state, seed);
+        for (let step = 0; step < 100; step++) {
+          const h = hint(state);
+          if (h.type === 'done') break;
+          followHint(state, h);
+        }
+        assert.equal(check(state).solved, true, `seed ${seed}`);
       }
-      for (let step = 0; step < 100; step++) {
-        const h = hint(state);
-        if (h.type === 'done') break;
-        if (h.type === 'wrong') moveItem(state, h.itemId, null);
-        else moveItem(state, h.itemId, h.slotId);
-      }
-      assert.equal(check(state).solved, true);
+    });
+
+    test(`${level.id}: exactly one solution, solvable by reasoning alone`, () => {
+      const st = levelStats(level, theme.catalog);
+      assert.equal(st.solutions, 1);
+      assert.equal(st.fair, 1, 'needs guessing');
     });
   }
 
@@ -49,9 +78,14 @@ for (const theme of THEMES) {
   });
 }
 
-test('levels are not wide open (some deduction needed)', () => {
-  const lvl = THEMES[0].levels[3];
-  assert.ok(countSolutions(lvl, THEMES[0].catalog) <= 50);
+test('winter difficulty ramps up', () => {
+  const theme = THEMES[0];
+  theme.levels.forEach((level, i) => {
+    const st = levelStats(level, theme.catalog);
+    const [minAmb, maxNaive] = RAMP[i];
+    assert.ok(st.ambiguous >= minAmb, `${level.id} ambiguous ${st.ambiguous}`);
+    assert.ok(st.naive <= maxNaive, `${level.id} naive ${st.naive}`);
+  });
 });
 
 test('sprite grids are well formed', () => {
