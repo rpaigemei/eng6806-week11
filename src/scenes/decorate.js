@@ -52,7 +52,7 @@ export function decorateScene(game, { levelId }) {
 
   addHud(buttons, game, { back: () => game.go('levels', { themeId: theme.id }) });
   buttons.add({
-    x: 246, y: 145, w: 70, h: 16, label: 'ARRANGE', style: 'gold', tip: 'Put things back in their tidy spots',
+    x: 246, y: 145, w: 70, h: 16, label: 'Arrange', style: 'gold', tip: 'Put things back in their tidy spots',
     onClick: () => {
       game.audio.play('swap');
       Object.assign(pos, solvedLayout());
@@ -61,7 +61,7 @@ export function decorateScene(game, { levelId }) {
     },
   });
   buttons.add({
-    x: 246, y: 163, w: 70, h: 13, label: 'CLEAR ALL',
+    x: 246, y: 163, w: 70, h: 13, label: 'Clear all',
     onClick: () => {
       game.audio.play('swap');
       for (const id of level.items) pos[id] = null;

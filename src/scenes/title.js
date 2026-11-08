@@ -11,7 +11,7 @@ export function titleScene(game) {
   const particles = new Particles();
   addHud(buttons, game);
   buttons.add({
-    x: 128, y: 104, w: 64, h: 17, label: 'PLAY', style: 'gold',
+    x: 128, y: 104, w: 64, h: 17, label: 'Play', style: 'gold',
     onClick: () => {
       game.audio.play('click');
       game.go('levels', { themeId: theme.id });
@@ -44,14 +44,14 @@ export function titleScene(game) {
       drawPanel(ctx, 86, 26, 148, 66, {});
       rect(ctx, PAL.r, 87, 27, 146, 2);
       rect(ctx, PAL.g, 87, 89, 146, 1);
-      drawText(ctx, 'Cozy Holiday', 160, 36, UI.ink, { scale: 2, align: 'center' });
-      drawText(ctx, 'Tidy-Up', 160, 52, PAL.R, { scale: 3, align: 'center', shadow: PAL.p });
-      drawText(ctx, 'sort · tidy · decorate', 160, 80, UI.inkSoft, { align: 'center' });
+      drawText(ctx, 'Cozy Holiday', 160, 36, UI.ink, { pixel: true, scale: 2, align: 'center' });
+      drawText(ctx, 'Tidy-Up', 160, 52, PAL.R, { pixel: true, scale: 3, align: 'center', shadow: PAL.p });
+      drawText(ctx, 'sort · tidy · decorate', 160, 79, UI.inkSoft, { align: 'center', size: 8 });
 
       drawTray(ctx);
       drawInfo(ctx, `${theme.name}: ${theme.tagline}`);
-      drawText(ctx, 'Drag decorations to the spots whose tags they match.', 160, 152, UI.paper, { align: 'center' });
-      drawText(ctx, 'No timers, no fails. Just tidying. ♥', 160, 162, UI.paperDark, { align: 'center' });
+      drawText(ctx, 'Drag decorations to the spots whose tags they match.', 160, 151, UI.paper, { align: 'center', size: 9 });
+      drawText(ctx, 'No timers, no fails. Just tidying.', 160, 164, UI.paperDark, { align: 'center', size: 8 });
       buttons.draw(ctx, t);
     },
     move: (p) => buttons.move(p),

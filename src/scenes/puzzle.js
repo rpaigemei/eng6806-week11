@@ -42,23 +42,23 @@ export function puzzleScene(game, { levelId }) {
 
   // ---------- buttons ----------
   addHud(buttons, game, { back: () => game.go('levels', { themeId: theme.id }) });
-  buttons.add({ x: 246, y: 145, w: 70, h: 16, label: 'DONE', style: 'gold', onClick: onDone, enabled: () => !solvedAt });
-  buttons.add({ x: 246, y: 163, w: 34, h: 13, label: 'HINT', onClick: onHint, enabled: () => !solvedAt });
-  buttons.add({ x: 282, y: 163, w: 34, h: 13, label: 'RESET', onClick: onReset, enabled: () => !solvedAt });
+  buttons.add({ x: 246, y: 145, w: 70, h: 16, label: 'Done', style: 'gold', onClick: onDone, enabled: () => !solvedAt });
+  buttons.add({ x: 246, y: 163, w: 34, h: 13, label: 'Hint', onClick: onHint, enabled: () => !solvedAt });
+  buttons.add({ x: 282, y: 163, w: 34, h: 13, label: 'Reset', onClick: onReset, enabled: () => !solvedAt });
 
   function overlayIntro() {
     overlay = 'intro';
     overlayButtons.list = [];
-    overlayButtons.add({ x: 125, y: 108, w: 70, h: 15, label: "LET'S TIDY", style: 'gold', onClick: closeOverlay });
+    overlayButtons.add({ x: 120, y: 108, w: 80, h: 16, label: "Let's tidy!", style: 'gold', onClick: closeOverlay });
   }
   function overlayComplete() {
     overlay = 'complete';
     overlayButtons.list = [];
     const bw = 62;
     const list = [];
-    if (next) list.push({ label: 'NEXT ROOM', style: 'gold', onClick: () => game.go('puzzle', { levelId: next.id }) });
-    list.push({ label: 'DECORATE', style: 'paper', onClick: () => game.go('decorate', { levelId: level.id }) });
-    list.push({ label: 'ROOMS', style: 'paper', onClick: () => game.go('levels', { themeId: theme.id }) });
+    if (next) list.push({ label: 'Next room', style: 'gold', onClick: () => game.go('puzzle', { levelId: next.id }) });
+    list.push({ label: 'Decorate', style: 'paper', onClick: () => game.go('decorate', { levelId: level.id }) });
+    list.push({ label: 'Rooms', style: 'paper', onClick: () => game.go('levels', { themeId: theme.id }) });
     const total = list.length * bw + (list.length - 1) * 6;
     list.forEach((b, i) =>
       overlayButtons.add({ ...b, x: 160 - total / 2 + i * (bw + 6), y: 104, w: bw, h: 15, onClick: () => { game.audio.play('click'); b.onClick(); } })
@@ -135,7 +135,7 @@ export function puzzleScene(game, { levelId }) {
     game.audio.play('wrong');
     for (const v of res.violations) {
       const slot = getSlot(state, v.slotId);
-      // slot-level problems (e.g. "MIN 1 bell") make the whole spot wiggle
+      // slot-level problems (e.g. "Min 1 bell") make the whole spot wiggle
       for (const id of v.itemId ? [v.itemId] : slot.items) wiggle[id] = 1;
       const f = flash[v.slotId] || { rules: new Set(), until: 0 };
       v.rules.forEach((r) => f.rules.add(slot.rules.indexOf(r)));
@@ -179,7 +179,7 @@ export function puzzleScene(game, { levelId }) {
       const ri = slot.rules.findIndex((r) => r.op === 'noAdjacent');
       flash[slot.id] = { rules: new Set([ri]), until: t + 3 };
     } else {
-      say('Everything looks right. Press DONE!', PAL.o);
+      say('Everything looks right. Press Done!', PAL.o);
     }
     highlight = { itemId: h.itemId || null, slotId: h.slotId || null, until: t + 4 };
   }
@@ -380,17 +380,21 @@ export function puzzleScene(game, { levelId }) {
     rect(ctx, PAL.k, 0, 0, 320, 180);
     ctx.globalAlpha = 1;
     if (overlay === 'intro') {
-      drawPanel(ctx, 50, 28, 220, 102);
-      rect(ctx, PAL.g, 51, 29, 218, 2);
-      drawText(ctx, `Room ${index + 1}`, 160, 36, UI.inkSoft, { align: 'center' });
-      drawText(ctx, level.title, 160, 45, PAL.R, { scale: 2, align: 'center' });
-      wrapText(level.intro, 196).forEach((line, i) => drawText(ctx, line, 160, 62 + i * 8, UI.ink, { align: 'center' }));
+      const lines = wrapText(level.intro, 204, { size: 8.5 });
+      const h = 60 + lines.length * 10;
+      const top = Math.round((180 - h) / 2) - 4;
+      drawPanel(ctx, 50, top, 220, h);
+      rect(ctx, PAL.g, 51, top + 1, 218, 2);
+      overlayButtons.list[0].y = top + h - 21;
+      drawText(ctx, `Room ${index + 1}`, 160, top + 7, UI.inkSoft, { align: 'center', size: 8, bold: true });
+      drawText(ctx, level.title, 160, top + 17, PAL.R, { pixel: true, scale: 2, align: 'center' });
+      lines.forEach((line, i) => drawText(ctx, line, 160, top + 34 + i * 10, UI.ink, { align: 'center', size: 8.5 }));
     } else if (overlay === 'complete') {
       drawPanel(ctx, 56, 40, 208, 86);
       rect(ctx, PAL.y, 57, 41, 206, 2);
-      drawText(ctx, 'All tidy!', 160, 52, PAL.R, { scale: 3, align: 'center', shadow: PAL.p });
-      drawText(ctx, `${level.title} looks lovely.`, 160, 76, UI.ink, { align: 'center' });
-      drawText(ctx, next ? `Next up: ${next.title}` : 'You tidied every room. Thank you!', 160, 86, UI.inkSoft, { align: 'center' });
+      drawText(ctx, 'All tidy!', 160, 52, PAL.R, { pixel: true, scale: 3, align: 'center', shadow: PAL.p });
+      drawText(ctx, `${level.title} looks lovely.`, 160, 74, UI.ink, { align: 'center', size: 9 });
+      drawText(ctx, next ? `Next up: ${next.title}` : 'You tidied every room. Thank you!', 160, 86, UI.inkSoft, { align: 'center', size: 8 });
     }
     overlayButtons.draw(ctx, t);
   }

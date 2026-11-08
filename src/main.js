@@ -14,9 +14,10 @@ const SCENES = { title: titleScene, levels: levelSelectScene, puzzle: puzzleScen
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-canvas.width = W;
-canvas.height = H;
-ctx.imageSmoothingEnabled = false;
+// The canvas backing store is k device pixels per game pixel; scenes draw in
+// 320x180 logical units through a scale transform. Pixel art stays crisp
+// (nearest-neighbor) and text is rendered smooth at full resolution.
+let k = 1;
 
 const save = loadSave();
 const game = {
@@ -45,6 +46,11 @@ function resize() {
   const scale = device >= 1 ? device / dpr : fit;
   canvas.style.width = `${W * scale}px`;
   canvas.style.height = `${H * scale}px`;
+  k = Math.max(1, device);
+  if (canvas.width !== W * k) {
+    canvas.width = W * k;
+    canvas.height = H * k;
+  }
 }
 window.addEventListener('resize', resize);
 resize();
@@ -90,6 +96,8 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   t += dt;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.imageSmoothingEnabled = false;
   game.scene.update?.(dt);
   game.scene.draw(ctx, t, dt);
   if (game.fade > 0) {
@@ -102,8 +110,17 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-game.go('title');
-requestAnimationFrame(frame);
+// Wait (briefly) for the reading font so the first frame isn't in a fallback face.
+const FONT = '"Atkinson Hyperlegible"';
+Promise.race([
+  Promise.all([document.fonts.load(`400 16px ${FONT}`), document.fonts.load(`700 16px ${FONT}`)]),
+  new Promise((r) => setTimeout(r, 1500)),
+])
+  .catch(() => {})
+  .then(() => {
+    game.go('title');
+    requestAnimationFrame(frame);
+  });
 
 // Portrait phones: suggest rotating, but let people play anyway.
 const rotate = document.getElementById('rotate');

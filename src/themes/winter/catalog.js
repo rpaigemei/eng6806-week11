@@ -76,6 +76,6 @@ export const VOCAB = {
 /** Which mini-icon represents each tag value on slot tags. */
 export function iconFor(attr, value) {
   if (attr === 'color') return { icon: 'swatch', colors: C[value === 'white' ? 'white' : value] };
-  if (attr === 'size') return { text: value === 'big' ? 'BIG' : 'SMALL' };
+  if (attr === 'size') return { text: value === 'big' ? 'Big' : 'Small' };
   return { icon: `cat_${value}`, colors: C.white };
 }
