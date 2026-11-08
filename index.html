@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="A cozy pixel-art puzzle about sorting and decorating for the holidays." />
+    <meta name="theme-color" content="#1b1320" />
+    <title>Cozy Holiday Tidy-Up</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%232a5a3c' d='M7 1h2v2h1v2h1v2h1v2h1v2H3V9h1V7h1V5h1V3h1z'/%3E%3Cpath fill='%23f6c453' d='M7 0h2v2H7z'/%3E%3Cpath fill='%23d64550' d='M6 6h1v1H6zM9 8h1v1H9zM5 10h1v1H5z'/%3E%3Cpath fill='%235f3a26' d='M7 11h2v3H7z'/%3E%3C/svg%3E" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #1b1320;
+        overflow: hidden;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+      }
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        touch-action: none;
+        cursor: pointer;
+        background: #2b1d2a;
+      }
+      #rotate {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 16px;
+        background: rgba(27, 19, 32, 0.92);
+        color: #fff6e3;
+        font: 16px/1.4 ui-monospace, Menlo, Consolas, monospace;
+        text-align: center;
+      }
+      #rotate[hidden] {
+        display: none;
+      }
+      #rotate small {
+        color: #d9c8b0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="game" width="320" height="180" aria-label="Cozy Holiday Tidy-Up game"></canvas>
+    <div id="rotate" hidden>
+      <div>Turn your device sideways for the coziest view.</div>
+      <small>(tap to play anyway)</small>
+    </div>
+    <noscript style="color:#fff6e3;font-family:monospace">This game needs JavaScript turned on.</noscript>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
