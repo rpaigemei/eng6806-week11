@@ -1,8 +1,9 @@
 // The main sorting puzzle: drag decorations from the pile into slots, press DONE.
 import { PAL, UI } from '../render/palette.js';
 import { drawPanel, drawText, wrapText, drawGhostCell, rect } from '../render/draw.js';
+import { templateSprite, itemSprite } from '../render/sprites.js';
 import { drawSlotBack, drawSlotFront, drawSlotHardware, slotWidth } from '../render/scenery.js';
-import { drawTag, tagRect } from '../render/tags.js';
+import { drawTag, tagRect, drawTagString, drawSpotFrame } from '../render/tags.js';
 import { ButtonSet, addHud } from '../ui.js';
 import { describe } from '../engine/rules.js';
 import { createState, moveItem, locate, getSlot, check, hint, resetState, cellPos, PITCH } from '../engine/level.js';
@@ -46,7 +47,7 @@ export function puzzleScene(game, { levelId }) {
   // ---------- buttons ----------
   addHud(buttons, game, { back: () => game.go('levels', { themeId: theme.id }) });
   buttons.add({ x: 246, y: 145, w: 70, h: 16, label: 'Done', style: 'gold', onClick: onDone, enabled: () => !solvedAt });
-  buttons.add({ x: 246, y: 163, w: 34, h: 13, label: 'Hint', onClick: onHint, enabled: () => !solvedAt });
+  buttons.add({ x: 246, y: 163, w: 34, h: 13, label: 'Hint', onClick: onHint, enabled: () => !solvedAt, draw: (ctx, x, y) => drawHintPips(ctx, x, y) });
   buttons.add({ x: 282, y: 163, w: 34, h: 13, label: 'Reset', onClick: onReset, enabled: () => !solvedAt });
 
   function overlayIntro() {
@@ -76,6 +77,58 @@ export function puzzleScene(game, { levelId }) {
     overlay = null;
   }
   overlayIntro();
+
+  // ---------- guided first room ----------
+  // step 1: drag the shown item to its box, step 2: tap a tag, step 3: finish + Done
+  let coach = level.tutorial && !game.save.tutorialDone ? { step: 1, at: 0 } : null;
+  const endCoach = () => {
+    coach = null;
+    game.save.tutorialDone = true;
+    persist(game.save);
+  };
+  buttons.add({
+    x: 136, y: 2, w: 48, h: 12, label: 'Skip tips', style: 'wood',
+    visible: () => !!coach && !overlay,
+    onClick: () => {
+      game.audio.play('click');
+      endCoach();
+    },
+  });
+  function coachText() {
+    if (coach.step === 1) {
+      const it = theme.catalog[level.tutorial.item];
+      return `Drag the ${it.name.toLowerCase()} into the ${getSlot(state, level.tutorial.slot).name}.`;
+    }
+    if (coach.step === 2) return 'Nice! Now tap a tag to read its rule.';
+    return state.pile.length ? 'Some things fit two boxes. Fill them so everything fits.' : 'All packed? Press Done to check!';
+  }
+  function coachUpdate() {
+    if (!coach || overlay) return;
+    if (coach.step === 1 && locate(state, level.tutorial.item).slotId === level.tutorial.slot) coach = { step: 2, at: t };
+    else if (coach.step === 2 && (hoverSlot || selected?.slotId) && t - coach.at > 0.4) coach = { step: 3, at: t };
+  }
+  function drawCoach(ctx) {
+    const hand = templateSprite('hand');
+    const bob = Math.round(Math.sin(t * 5) * 1.5);
+    if (coach.step === 1) {
+      const from = pilePos(level, level.tutorial.item);
+      const slot = getSlot(state, level.tutorial.slot);
+      const to = cellPos(slot, slot.items.length);
+      const k = Math.min(1, ((t * 0.6) % 1.4) / 1.0);
+      const e = k * k * (3 - 2 * k);
+      const x = from.x + (to.x - from.x) * e;
+      const y = from.y + (to.y - from.y) * e;
+      ctx.globalAlpha = 0.55;
+      ctx.drawImage(itemSprite(theme.catalog[level.tutorial.item]), Math.round(x), Math.round(y) - 3);
+      ctx.globalAlpha = 1;
+      ctx.drawImage(hand, Math.round(x + 5), Math.round(y + 8));
+    } else if (coach.step === 2) {
+      const r = tagRect(getSlot(state, level.tutorial.slot), theme);
+      ctx.drawImage(hand, Math.round(r.x + r.w / 2 - 3), r.y + r.h + 1 + bob);
+    } else if (!state.pile.length && !solvedAt) {
+      ctx.drawImage(hand, 278, 153 + bob);
+    }
+  }
 
   // ---------- geometry ----------
   function targetPos(id) {
@@ -161,38 +214,86 @@ export function puzzleScene(game, { levelId }) {
     say(`Hmm, ${parts.join(' and ')}.`, PAL.p);
   }
 
+  // Tiered hints: asking again about the same situation reveals a little more.
+  //  tier 1 = where to look, tier 2 = which rule matters, tier 3 = the exact move.
+  let hintTier = 0;
+  let hintKey = '';
+  const boardKey = () => state.slots.map((s) => s.items.join(',')).join('|') + '#' + state.pile.join(',');
+
   function onHint() {
     const h = hint(state);
     game.audio.play('hint');
+    const key = boardKey() + JSON.stringify([h.type, h.itemId, h.slotId, h.from]);
+    hintTier = key === hintKey ? Math.min(3, hintTier + 1) : 1;
+    hintKey = key;
+    const tier = hintTier;
     const item = h.itemId ? theme.catalog[h.itemId] : null;
     const slot = h.slotId ? getSlot(state, h.slotId) : null;
+    const lc = (x) => x.name.toLowerCase();
+    const flashRule = (sl, rule) => (flash[sl.id] = { rules: new Set([sl.rules.indexOf(rule)]), until: t + 3 });
+    const flashAll = (sl) => (flash[sl.id] = { rules: new Set(sl.rules.map((_, i) => i)), until: t + 3 });
+    let hl = { itemId: null, slotId: null };
+
     if (h.type === 'wrong') {
-      say(`The ${item.name.toLowerCase()} breaks "${describe(h.rule, vocab)}".`, PAL.o);
-      flash[slot.id] = { rules: new Set([slot.rules.indexOf(h.rule)]), until: t + 3 };
+      if (tier === 1) say(`Something on the ${lc(slot)} isn't happy.`, PAL.o);
+      else if (tier === 2) {
+        say(`Check the ${lc(slot)}: ${describe(h.rule, vocab)}.`, PAL.o);
+        flashRule(slot, h.rule);
+      } else {
+        say(`The ${lc(item)} breaks "${describe(h.rule, vocab)}".`, PAL.o);
+        flashRule(slot, h.rule);
+        hl.itemId = h.itemId;
+      }
+      hl.slotId = slot.id;
     } else if (h.type === 'place') {
-      say(`Try the ${item.name.toLowerCase()} in the ${slot.name.toLowerCase()}.`, PAL.o);
+      if (tier === 1) say(`Take a look at the ${lc(slot)}.`, PAL.o);
+      else if (tier === 2) {
+        say(`The ${lc(slot)}: ${rulesText(slot)}. What can only go there?`, PAL.o);
+        flashAll(slot);
+      } else {
+        say(`Try the ${lc(item)} in the ${lc(slot)}.`, PAL.o);
+        hl.itemId = h.itemId;
+      }
+      hl.slotId = slot.id;
     } else if (h.type === 'move') {
       const from = getSlot(state, h.from);
-      say(
-        slot
-          ? `The ${item.name.toLowerCase()} is needed in the ${slot.name.toLowerCase()}.`
-          : `The ${item.name.toLowerCase()} doesn't belong in the ${from.name.toLowerCase()}.`,
-        PAL.o
-      );
+      if (tier === 1) {
+        say(`Something on the ${lc(from)} belongs somewhere else.`, PAL.o);
+        hl.slotId = from.id;
+      } else if (tier === 2) {
+        say(`The ${lc(item)} is in the wrong spot.`, PAL.o);
+        hl.itemId = h.itemId;
+      } else {
+        say(slot ? `The ${lc(item)} is needed in the ${lc(slot)}.` : `Take the ${lc(item)} out of the ${lc(from)}.`, PAL.o);
+        hl = { itemId: h.itemId, slotId: slot ? slot.id : null };
+      }
     } else if (h.type === 'needs') {
       const from = getSlot(state, h.from);
-      say(`The ${from.name.toLowerCase()} needs ${describe(h.rule, vocab)}.`, PAL.o);
-      flash[from.id] = { rules: new Set([from.rules.indexOf(h.rule)]), until: t + 3 };
-      highlight = { itemId: h.itemId, slotId: from.id, until: t + 4 };
-      return;
+      if (tier === 1) say(`Take a look at the ${lc(from)}.`, PAL.o);
+      else {
+        say(tier === 2 ? `The ${lc(from)} needs ${describe(h.rule, vocab)}.` : `The ${lc(from)} needs ${describe(h.rule, vocab)}. Move the ${lc(item)} out.`, PAL.o);
+        flashRule(from, h.rule);
+        if (tier === 3) hl.itemId = h.itemId;
+      }
+      hl.slotId = from.id;
     } else if (h.type === 'reorder') {
-      say(`Right things, wrong order: rearrange the ${slot.name.toLowerCase()}.`, PAL.o);
       const ri = slot.rules.findIndex((r) => r.op === 'noAdjacent');
-      flash[slot.id] = { rules: new Set([ri]), until: t + 3 };
+      if (tier === 1) say(`Take a look at the ${lc(slot)}.`, PAL.o);
+      else {
+        say(tier === 2 ? `The ${lc(slot)}: ${describe(slot.rules[ri], vocab)}.` : `Right things, wrong order: rearrange the ${lc(slot)}.`, PAL.o);
+        flash[slot.id] = { rules: new Set([ri]), until: t + 3 };
+      }
+      hl.slotId = slot.id;
     } else {
       say('Everything looks right. Press Done!', PAL.o);
     }
-    highlight = { itemId: h.itemId || null, slotId: h.slotId || null, until: t + 4 };
+    highlight = { ...hl, until: t + 4 };
+  }
+
+  /** Little pips on the Hint button: how much the current hint has revealed. */
+  function drawHintPips(ctx, x, y) {
+    const shown = hintKey && hintKey.startsWith(boardKey()) ? hintTier : 0;
+    for (let i = 0; i < 3; i++) rect(ctx, i < shown ? PAL.o : UI.trayDark, x + 11 + i * 4, y + 10, 2, 1);
   }
 
   function onReset() {
@@ -202,6 +303,7 @@ export function puzzleScene(game, { levelId }) {
   }
 
   function celebrate() {
+    if (coach) endCoach();
     solvedAt = t;
     game.save.solved[level.id] = true;
     persist(game.save);
@@ -251,6 +353,7 @@ export function puzzleScene(game, { levelId }) {
     if (focus) return { text: itemInfo(theme, theme.catalog[focus]), color: UI.paper };
     const slot = hoverSlot || (selected?.slotId && getSlot(state, selected.slotId));
     if (slot) return { text: `${slot.name}: ${rulesText(slot)}`, color: PAL.o };
+    if (coach) return { text: coachText(), color: PAL.o };
     return { text: 'Drag decorations from the pile to spots that match their tags.', color: UI.paperDark };
   }
 
@@ -259,6 +362,7 @@ export function puzzleScene(game, { levelId }) {
     song: theme.song,
     update(dt) {
       t += dt;
+      coachUpdate();
       for (const k of Object.keys(wiggle)) if ((wiggle[k] -= dt) <= 0) delete wiggle[k];
       particles.update(dt);
       if (solvedAt !== null && overlay === null && t - solvedAt > 1.6) overlayComplete();
@@ -271,6 +375,11 @@ export function puzzleScene(game, { levelId }) {
       const pulse = Math.floor(t * 4) % 2 === 0;
 
       for (const s of state.slots) drawSlotBack(ctx, s);
+      // dotted strings tie each tag to its spot (drawn behind the items)
+      for (const s of state.slots) {
+        const linked = hoverSlot === s || selected?.slotId === s.id || target?.slot === s;
+        drawTagString(ctx, s, theme, linked);
+      }
       for (const s of state.slots) {
         const isTarget = target?.slot === s;
         for (let i = s.items.length; i < s.capacity; i++) {
@@ -283,7 +392,7 @@ export function puzzleScene(game, { levelId }) {
         }
       }
 
-      const drawPlaced = (id) => {
+      const drawPlaced = (id, plate = false) => {
         const item = theme.catalog[id];
         const pos = glide.get(id, targetPos(id), dt);
         let x = pos.x;
@@ -292,7 +401,7 @@ export function puzzleScene(game, { levelId }) {
         if (hl && hl.itemId === id && pulse) outline = PAL.y;
         else if (wiggle[id] && flashFor(id)) outline = PAL.r;
         else if (hoverItem === id || selected?.itemId === id) outline = PAL.o;
-        drawItem(ctx, item, x, pos.y, { outline });
+        drawItem(ctx, item, x, pos.y, { outline, plate });
       };
       const flashFor = (id) => locate(state, id).slotId;
 
@@ -304,6 +413,7 @@ export function puzzleScene(game, { levelId }) {
       for (const s of state.slots) {
         const f = flash[s.id] && t < flash[s.id].until ? flash[s.id].rules : null;
         const hot = target?.slot === s || hoverSlot === s || selected?.slotId === s.id || (hl && hl.slotId === s.id && pulse);
+        if (hoverSlot === s || selected?.slotId === s.id) drawSpotFrame(ctx, s);
         drawTag(ctx, s, theme, t, { flash: f, hot });
       }
 
@@ -318,12 +428,13 @@ export function puzzleScene(game, { levelId }) {
       drawTray(ctx);
       const info = infoText();
       drawInfo(ctx, info.text, info.color);
-      for (const id of state.pile) if (!drag || drag.itemId !== id) drawPlaced(id);
+      for (const id of state.pile) if (!drag || drag.itemId !== id) drawPlaced(id, true);
       buttons.draw(ctx, t);
 
       if (drag) drawItem(ctx, theme.catalog[drag.itemId], drag.x, drag.y, { lifted: true });
       particles.draw(ctx, t);
 
+      if (coach && !overlay) drawCoach(ctx);
       if (overlay) drawOverlay(ctx);
     },
 

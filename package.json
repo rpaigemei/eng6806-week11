@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test tests/*.test.js",
+    "test:layout": "node tools/taglayout.cjs",
     "start": "python3 -m http.server 8000"
   }
 }

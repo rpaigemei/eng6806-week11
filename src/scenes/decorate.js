@@ -110,7 +110,7 @@ export function decorateScene(game, { levelId }) {
       for (const id of order) {
         if (pos[id] || (drag && drag.itemId === id)) continue;
         const q = glide.get(id, targetPos(id), dt);
-        drawItem(ctx, theme.catalog[id], q.x, q.y, { outline: hoverItem === id ? PAL.o : null });
+        drawItem(ctx, theme.catalog[id], q.x, q.y, { outline: hoverItem === id ? PAL.o : null, plate: true });
       }
       buttons.draw(ctx, t);
       if (drag) drawItem(ctx, theme.catalog[drag.itemId], drag.x, drag.y, { lifted: true });

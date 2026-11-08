@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { THEMES, roomNumber } from '../src/themes/index.js';
 import { isThemeUnlocked } from '../src/save.js';
-import { TEMPLATES, ICONS, COLORWAYS } from '../src/render/spriteData.js';
+import { TEMPLATES, ICONS, COLORWAYS, COLOR_SYMBOLS } from '../src/render/spriteData.js';
 import { PAL } from '../src/render/palette.js';
 import {
   createState, moveItem, check, hint, solve, validateLevel, locate, slotRect, levelStats,
@@ -100,6 +100,31 @@ for (const theme of THEMES) {
     });
   });
 }
+
+for (const theme of THEMES) {
+  test(`${theme.id}: difficulty (depth + 2 x "what if?" steps) never dips`, () => {
+    const d = theme.levels.map((l) => levelStats(l, theme.catalog).difficulty);
+    for (let i = 1; i < d.length; i++) assert.ok(d[i] >= d[i - 1], `${theme.levels[i].id}: ${d.join(' -> ')}`);
+  });
+}
+
+test('every color used anywhere has a symbol swatch', () => {
+  for (const theme of THEMES) {
+    for (const it of Object.values(theme.catalog)) {
+      assert.ok(ICONS[`swatch_${it.tags.color}`], `no swatch for ${it.tags.color}`);
+      assert.ok(COLOR_SYMBOLS[it.tags.color], `no symbol name for ${it.tags.color}`);
+    }
+  }
+});
+
+test("items are drawn in the color they're tagged with", () => {
+  for (const theme of THEMES) {
+    for (const it of Object.values(theme.catalog)) {
+      const cw = Object.entries(COLORWAYS).find(([, c]) => ['1', '2', '3'].every((k) => it.colors[k] === c[k]));
+      if (cw) assert.equal(cw[0], it.tags.color, `${it.id} is drawn ${cw[0]} but tagged ${it.tags.color}`);
+    }
+  }
+});
 
 test('every holiday has 5 rooms, unique ids, and title-screen pieces', () => {
   const ids = new Set();

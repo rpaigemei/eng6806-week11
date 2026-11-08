@@ -15,7 +15,9 @@ export const LEVELS = [
     title: 'Storage Boxes',
     backdrop: 'attic',
     intro:
-      'Drag each decoration into a box whose tag it matches. Some things fit two boxes, but only one way fits everything. Press Done when the pile is empty.',
+      'The decorations got jumbled! Let\'s tidy the attic together.',
+    // A short guided first room (runs once; see scenes/puzzle.js).
+    tutorial: { item: 'ribbon_red', slot: 'box_red' },
     items: ['orn_red', 'lights_warm', 'ribbon_red', 'orn_blue', 'bell_red', 'lights_red'],
     slots: [
       { id: 'box_orn', name: 'Bauble box', x: 50, y: 90, capacity: 2, style: 'box', rules: [is('category', 'ornament')] },
@@ -33,9 +35,9 @@ export const LEVELS = [
       'New tag: "Mixed" means no two things in that row may share a color (or a kind). Each placement tells you something about the next one.',
     items: ['ribbon_green', 'star_gold', 'bell_red', 'orn_white', 'lights_blue', 'ribbon_red', 'orn_green', 'bell_blue', 'ribbon_gold'],
     slots: [
-      { id: 'top', name: 'Top branches', x: 143, y: 26, capacity: 2, style: 'branch', rules: [is('color', 'blue')], tag: { x: 200, y: 29, align: 'left' } },
-      { id: 'mid', name: 'Middle branches', x: 134, y: 52, capacity: 3, style: 'branch', rules: [not(is('size', 'big')), allDifferent('category')], tag: { x: 116, y: 55, align: 'right' } },
-      { id: 'low', name: 'Low branches', x: 125, y: 78, capacity: 4, style: 'branch', rules: [allDifferent('color')], tag: { x: 222, y: 81, align: 'left' } },
+      { id: 'top', name: 'Top branches', x: 143, y: 26, capacity: 2, style: 'branch', rules: [is('color', 'blue')], tag: { x: 181, y: 29, align: 'left' } },
+      { id: 'mid', name: 'Middle branches', x: 134, y: 52, capacity: 3, style: 'branch', rules: [not(is('size', 'big')), allDifferent('category')], tag: { x: 130, y: 55, align: 'right' } },
+      { id: 'low', name: 'Low branches', x: 125, y: 78, capacity: 4, style: 'branch', rules: [allDifferent('color')], tag: { x: 199, y: 81, align: 'left' } },
     ],
   },
   {
@@ -84,7 +86,7 @@ export const LEVELS = [
       { id: 'treetop', name: 'Treetop', x: 152, y: 2, capacity: 1, style: 'none', rules: [is('category', 'star')], tag: { x: 176, y: 5, align: 'left' } },
       { id: 't1', name: 'Upper branches', x: 134, y: 28, capacity: 3, style: 'branch', rules: [allSame('color')], tag: { x: 124, y: 31, align: 'right' } },
       { id: 't2', name: 'Middle branches', x: 125, y: 54, capacity: 4, style: 'branch', rules: [countAtMost('category', 'lights', 1), noAdjacent('color')], tag: { x: 206, y: 57, align: 'left' } },
-      { id: 't3', name: 'Low branches', x: 125, y: 80, capacity: 4, style: 'branch', rules: [allSame('category')], tag: { x: 108, y: 83, align: 'right' } },
+      { id: 't3', name: 'Low branches', x: 125, y: 80, capacity: 4, style: 'branch', rules: [allSame('category')], tag: { x: 121, y: 83, align: 'right' } },
     ],
   },
 ];

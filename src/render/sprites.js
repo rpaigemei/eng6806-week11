@@ -48,6 +48,13 @@ export function itemOutline(item, color) {
   return cache.get(key);
 }
 
+/** A fixed (non-item) 16x16 template such as the tutorial hand. */
+export function templateSprite(name) {
+  const key = `tpl:${name}`;
+  if (!cache.has(key)) cache.set(key, build(TEMPLATES[name]));
+  return cache.get(key);
+}
+
 export function iconSprite(name, colors) {
   const key = `icon:${name}:${colors ? Object.values(colors).join('') : ''}`;
   if (!cache.has(key)) cache.set(key, build(ICONS[name], colors));

@@ -17,7 +17,7 @@ export const CATALOG = Object.fromEntries(
     item('pumpkin_green', 'Green gourd', 'pumpkinSmall', C.green, 'pumpkin', 'green', 'small'),
     item('pumpkin_mini', 'Mini pumpkin', 'pumpkinSmall', C.orange, 'pumpkin', 'orange', 'small'),
     item('pumpkin_purple', 'Plum gourd', 'pumpkinSmall', C.purple, 'pumpkin', 'purple', 'small'),
-    item('jack', "Jack-o'-lantern", 'jackolantern', {}, 'lantern', 'orange', 'big'),
+    item('lantern_orange', 'Orange lantern', 'lantern', {}, 'lantern', 'orange', 'big'),
     item('candle_orange', 'Orange candle', 'candleTall', C.orange, 'lantern', 'orange', 'big'),
     item('candle_purple', 'Purple candle', 'candleShort', C.purple, 'lantern', 'purple', 'small'),
     item('candle_black', 'Black candle', 'candleShort', C.black, 'lantern', 'black', 'small'),
@@ -47,7 +47,7 @@ export const VOCAB = {
   lantern: ['light', 'lights'],
   critter: ['critter', 'critters'],
   spooky: ['spook', 'spooks'],
-  potion: ['potion', 'potions'],
+  potion: ['brew', 'brews'],
   candy: ['candy', 'candies'],
   hat: ['hat', 'hats'],
   orange: ['orange thing', 'orange things'],
@@ -60,7 +60,7 @@ export const VOCAB = {
 };
 
 export function iconFor(attr, value) {
-  if (attr === 'color') return { icon: 'swatch', colors: C[value] };
+  if (attr === 'color') return { icon: `swatch_${value}` };
   if (attr === 'size') return { text: value === 'big' ? 'Big' : 'Small' };
   return { icon: `cat_${value}`, colors: C.white };
 }

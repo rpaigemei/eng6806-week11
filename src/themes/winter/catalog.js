@@ -23,11 +23,11 @@ export const CATALOG = Object.fromEntries(
     item('star_gold', 'Gold star', 'star', C.gold, 'star', 'gold', 'big'),
     item('star_red', 'Berry star', 'star', C.red, 'star', 'red', 'big'),
     item('bell_blue', 'Blue bell', 'bell', C.blue, 'bell', 'blue', 'small'),
-    item('orn_white', 'Snow bauble', 'bauble', C.silver, 'ornament', 'white', 'small'),
+    item('orn_white', 'Snow bauble', 'bauble', C.white, 'ornament', 'white', 'small'),
     item('ribbon_blue', 'Blue bow', 'bow', C.blue, 'ribbon', 'blue', 'small'),
     item('stocking_blue', 'Blue stocking', 'stocking', C.blue, 'stocking', 'blue', 'big'),
     item('candle_green', 'Pine candle', 'candleShort', C.green, 'candle', 'green', 'small'),
-    item('star_white', 'Snow star', 'star', C.silver, 'star', 'white', 'big'),
+    item('star_white', 'Snow star', 'star', C.white, 'star', 'white', 'big'),
     item('lights_warm', 'Warm lights', 'lights', C.gold, 'lights', 'gold', 'big'),
     item('lights_blue', 'Icy lights', 'lights', C.blue, 'lights', 'blue', 'big'),
     item('lights_red', 'Berry lights', 'lights', C.red, 'lights', 'red', 'big'),
@@ -75,7 +75,7 @@ export const VOCAB = {
 
 /** Which mini-icon represents each tag value on slot tags. */
 export function iconFor(attr, value) {
-  if (attr === 'color') return { icon: 'swatch', colors: C[value === 'white' ? 'white' : value] };
+  if (attr === 'color') return { icon: `swatch_${value}` };
   if (attr === 'size') return { text: value === 'big' ? 'Big' : 'Small' };
   return { icon: `cat_${value}`, colors: C.white };
 }
