@@ -60,5 +60,25 @@ export const LEVELS = [
       { id: 'hearth', name: 'Hearth', x: 228, y: 91, capacity: 3, style: 'none', rules: [countAtMost('category', 'hat', 1)] },
     ],
   },
-  // rooms 9 and 10 are appended below once designed
+  {
+    // The only candy must sit in the crates; only the cat and green hat are big
+    // and black/green, so they take the window. The purple hat has nowhere else
+    // to go but the crates. Case split: if the shelf weren't the three lights,
+    // the purple candle would also need the crates, stranding the purple potion.
+    id: 'halloween-4',
+    title: 'Dusty Attic',
+    backdrop: 'attic',
+    cover: 'spider_black',
+    intro:
+      'Some spots could take several groups. When you get stuck, try "what if?": if this spot held that group, would everything else still fit?',
+    items: ['spider_green', 'hat_purple', 'pumpkin_white', 'candle_bone', 'potion_orange', 'cat', 'candy_green', 'candle_purple', 'spider_black', 'jack', 'potion_purple', 'hat_green', 'pumpkin_green'],
+    slots: [
+      { id: 'trunk', name: 'Old trunk', x: 18, y: 90, capacity: 3, style: 'none', rules: [not(is('color', 'white')), not(is('color', 'purple'))] },
+      { id: 'window', name: 'Round window', x: 143, y: 29, capacity: 2, style: 'none', rules: [oneOf('color', ['black', 'green']), is('size', 'big')], tag: { x: 188, y: 32, align: 'left' } },
+      { id: 'shelf', name: 'High shelf', x: 232, y: 40, capacity: 3, style: 'none', rules: [allSame('category')] },
+      { id: 'chair', name: 'Rocking chair', x: 134, y: 88, capacity: 2, style: 'none', rules: [not(is('color', 'purple')), allSame('category')] },
+      { id: 'crates', name: 'Crates', x: 236, y: 90, capacity: 3, style: 'none', rules: [countAtLeast('category', 'candy', 1)] },
+    ],
+  },
+  // room 10 is appended below once designed
 ];
