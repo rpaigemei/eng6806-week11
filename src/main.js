@@ -111,9 +111,8 @@ function frame(now) {
 }
 
 // Wait (briefly) for the reading font so the first frame isn't in a fallback face.
-const FONT = '"Atkinson Hyperlegible"';
 Promise.race([
-  Promise.all([document.fonts.load(`400 16px ${FONT}`), document.fonts.load(`700 16px ${FONT}`)]),
+  document.fonts.load('400 16px "VT323"'),
   new Promise((r) => setTimeout(r, 1500)),
 ])
   .catch(() => {})

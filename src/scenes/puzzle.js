@@ -387,12 +387,12 @@ export function puzzleScene(game, { levelId }) {
       rect(ctx, PAL.g, 51, top + 1, 218, 2);
       overlayButtons.list[0].y = top + h - 21;
       drawText(ctx, `Room ${index + 1}`, 160, top + 7, UI.inkSoft, { align: 'center', size: 8, bold: true });
-      drawText(ctx, level.title, 160, top + 17, PAL.R, { pixel: true, scale: 2, align: 'center' });
+      drawText(ctx, level.title, 160, top + 17, PAL.R, { title: 2, align: 'center' });
       lines.forEach((line, i) => drawText(ctx, line, 160, top + 34 + i * 10, UI.ink, { align: 'center', size: 8.5 }));
     } else if (overlay === 'complete') {
       drawPanel(ctx, 56, 40, 208, 86);
       rect(ctx, PAL.y, 57, 41, 206, 2);
-      drawText(ctx, 'All tidy!', 160, 52, PAL.R, { pixel: true, scale: 3, align: 'center', shadow: PAL.p });
+      drawText(ctx, 'All tidy!', 160, 52, PAL.R, { title: 3, align: 'center', shadow: PAL.p });
       drawText(ctx, `${level.title} looks lovely.`, 160, 74, UI.ink, { align: 'center', size: 9 });
       drawText(ctx, next ? `Next up: ${next.title}` : 'You tidied every room. Thank you!', 160, 86, UI.inkSoft, { align: 'center', size: 8 });
     }
