@@ -1,6 +1,6 @@
 // Winter rooms. Each backdrop has a cached static layer and a live layer
 // (falling snow in windows, twinkling lights, a crackling fire).
-import { PAL } from '../../render/palette.js';
+import { PAL, UI } from '../../render/palette.js';
 import { rect } from '../../render/draw.js';
 import {
   Snow, makeBackdrop, drawWallpaper, drawAtticWall, drawFloor, drawRug, drawWindowFrame, drawWindowMullions,
@@ -147,3 +147,25 @@ const bigtree = makeBackdrop(
 );
 
 export const BACKDROPS = { attic, tree, mantel, table, bigtree };
+
+/** Little seasonal scene for the title-screen window: snowy night. */
+export function windowScene() {
+  let snow = null;
+  return (ctx, r, t, dt) => {
+    snow ??= new Snow(r.x, r.y, r.w, r.h, Math.round((r.w * r.h) / 70), 71);
+    rect(ctx, UI.night, r.x, r.y, r.w, r.h);
+    rect(ctx, UI.night2, r.x, r.y + Math.round(r.h * 0.55), r.w, Math.round(r.h * 0.45));
+    rect(ctx, PAL.o, r.x + r.w - 12, r.y + 5, 5, 5);
+    rect(ctx, UI.night, r.x + r.w - 10, r.y + 5, 3, 3);
+    for (let i = 0; i < r.w; i++) {
+      const hh = 5 + Math.round(2 * Math.sin(i / 7) + Math.sin(i / 3));
+      rect(ctx, PAL.c, r.x + i, r.y + r.h - hh, 1, hh);
+      rect(ctx, PAL.w, r.x + i, r.y + r.h - hh, 1, 1);
+    }
+    // a tiny snowy pine
+    for (let i = 0; i < 12; i++) rect(ctx, PAL.G, r.x + 10 - Math.floor(i / 2), r.y + r.h - 18 + i, i + 1, 1);
+    rect(ctx, PAL.w, r.x + 9, r.y + r.h - 18, 2, 1);
+    snow.update(dt, t);
+    snow.draw(ctx);
+  };
+}

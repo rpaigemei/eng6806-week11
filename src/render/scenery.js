@@ -9,8 +9,9 @@ export const FLOOR_Y = 108;
 // ---------- particles ----------
 
 export class Snow {
-  constructor(x, y, w, h, count, seed = 1) {
-    Object.assign(this, { x, y, w, h });
+  /** colors: [bigFlake, smallFlake]; pass leaf colors for autumn. */
+  constructor(x, y, w, h, count, seed = 1, { colors = [PAL.w, PAL.c], speed = 1 } = {}) {
+    Object.assign(this, { x, y, w, h, colors, speed });
     let s = seed;
     const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
     this.flakes = Array.from({ length: count }, () => ({
@@ -23,8 +24,8 @@ export class Snow {
   }
   update(dt, t) {
     for (const f of this.flakes) {
-      f.y += f.v * dt;
-      f.x += Math.sin(t * 0.8 + f.p) * dt * 3;
+      f.y += f.v * dt * this.speed;
+      f.x += Math.sin(t * 0.8 + f.p) * dt * 3 * (this.speed > 1 ? 4 : 1);
       if (f.y > this.h) {
         f.y -= this.h;
         f.x = (f.x + 37) % this.w;
@@ -35,7 +36,7 @@ export class Snow {
   }
   draw(ctx) {
     for (const f of this.flakes) {
-      rect(ctx, f.big ? PAL.w : PAL.c, this.x + f.x, this.y + f.y, f.big ? 2 : 1, f.big ? 2 : 1);
+      rect(ctx, f.big ? this.colors[0] : this.colors[1], this.x + f.x, this.y + f.y, f.big ? 2 : 1, f.big ? 2 : 1);
     }
   }
 }

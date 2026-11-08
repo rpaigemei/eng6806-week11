@@ -1,37 +1,10 @@
 // All sound is synthesized with the Web Audio API — no audio files.
-// The music is an original, gentle music-box waltz.
+// Music is original music-box waltzes, stored as data in songs.js.
 import { persist } from './save.js';
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
-// 3/4 time, one entry per beat: [melody midi or null, chord root midi]
-const CHORDS = {
-  C: [48, 52, 55],
-  Am: [45, 48, 52],
-  F: [41, 45, 48],
-  G: [43, 47, 50],
-  Em: [40, 43, 47],
-  Dm: [38, 41, 45],
-};
-const SONG = [
-  ['C', [76, 79, 84]],
-  ['Am', [83, 81, 76]],
-  ['F', [77, 81, 84]],
-  ['G', [83, null, 79]],
-  ['C', [76, 79, 84]],
-  ['Em', [83, 79, 76]],
-  ['F', [77, 76, 74]],
-  ['G', [74, null, 71]],
-  ['Am', [72, 76, 81]],
-  ['F', [81, 79, 77]],
-  ['Dm', [77, 74, 77]],
-  ['G', [79, null, 74]],
-  ['C', [76, 74, 72]],
-  ['F', [77, 76, 74]],
-  ['G', [71, 74, 79]],
-  ['C', [72, null, null]],
-];
-const BEAT = 60 / 92;
+import { TITLE_SONG } from './songs.js';
 
 export class Audio {
   constructor(save) {
@@ -40,6 +13,15 @@ export class Audio {
     this.timer = null;
     this.nextTime = 0;
     this.step = 0;
+    this.song = TITLE_SONG;
+  }
+
+  /** Switch tunes (each scene asks for its holiday's song); restarts at bar 1. */
+  setSong(song) {
+    if (!song || song === this.song) return;
+    this.song = song;
+    this.step = 0;
+    if (this.ctx) this.nextTime = Math.max(this.nextTime, this.ctx.currentTime + 0.3);
   }
 
   /** Must be called from a user gesture (browsers block audio until then). */
@@ -132,13 +114,16 @@ export class Audio {
 
   schedule() {
     while (this.nextTime < this.ctx.currentTime + 0.25) {
-      const bar = SONG[Math.floor(this.step / 3) % SONG.length];
+      const song = this.song;
+      const BEAT = 60 / song.bpm;
+      const [chordName, melody] = song.bars[Math.floor(this.step / 3) % song.bars.length];
       const beat = this.step % 3;
-      const [chordName, melody] = bar;
-      const chord = CHORDS[chordName];
+      const chord = song.chords[chordName];
       const t = this.nextTime;
-      if (beat === 0) this.tone(midi(chord[0] - 12), t, BEAT * 2.5, { type: 'triangle', vol: 0.35, bus: this.musicBus, attack: 0.02 });
-      else this.bell(midi(chord[beat] + 12), t, BEAT * 1.2, 0.12, this.musicBus);
+      if (beat === 0) {
+        if (song.bass !== false) this.tone(midi(chord[0] - 12), t, BEAT * 2.5, { type: 'triangle', vol: 0.35, bus: this.musicBus, attack: 0.02 });
+        else this.bell(midi(chord[0] + 12), t, BEAT * 1.5, 0.1, this.musicBus);
+      } else this.bell(midi(chord[beat] + 12), t, BEAT * 1.2, 0.12, this.musicBus);
       const note = melody[beat];
       if (note) this.bell(midi(note), t, BEAT * 2.2, 0.3, this.musicBus);
       this.nextTime += BEAT;

@@ -1,0 +1,64 @@
+// Halloween levels — rooms 6-10. Pure data, same conventions as winter/levels.js.
+// Every level has exactly one solution and can be solved by reasoning alone.
+import { R } from '../../engine/rules.js';
+
+const { is, oneOf, not, countAtMost, countAtLeast, allDifferent, allSame, noAdjacent } = R;
+
+export const LEVELS = [
+  {
+    // Warm-up chain: only two white things -> sill. The lone hat can't pair up in
+    // "Same kind" and the railing says "No hats", so it takes the steps, which
+    // makes the steps all big (cat + cauldron). Potions pair; bat + candy remain.
+    id: 'halloween-1',
+    title: 'Front Porch',
+    backdrop: 'porch',
+    cover: 'jack',
+    intro:
+      'Welcome to Halloween! Same tags, new decorations. Find the spot that only a few things can fill, and follow the chain from there.',
+    items: ['potion_orange', 'cat', 'bat_black', 'pumpkin_white', 'hat_green', 'candy_green', 'ghost', 'cauldron', 'potion_purple'],
+    slots: [
+      { id: 'sill', name: 'Window sill', x: 37, y: 52, capacity: 2, style: 'none', rules: [is('color', 'white')] },
+      { id: 'door', name: 'By the door', x: 104, y: 88, capacity: 2, style: 'none', rules: [allSame('category')] },
+      { id: 'rail', name: 'Railing', x: 252, y: 64, capacity: 2, style: 'none', rules: [not(is('category', 'hat'))] },
+      { id: 'steps', name: 'Steps', x: 134, y: 106, capacity: 3, style: 'none', rules: [allSame('size')], tag: { x: 160, y: 94, align: 'center' } },
+    ],
+  },
+  {
+    // Three greens fill the vines. The candy can't sit with a pumpkin in a
+    // same-size spot (no small pumpkins here), so it goes to the wheelbarrow,
+    // which must then be all orange. The white pumpkin anchors the hay bale.
+    id: 'halloween-2',
+    title: 'Pumpkin Patch',
+    backdrop: 'patch',
+    cover: 'pumpkin_orange',
+    intro:
+      'Count before you place. Which colors come in exactly the right number? And could a small candy ever share a spot with a big pumpkin?',
+    items: ['spider_black', 'pumpkin_orange', 'potion_green', 'ghost', 'candle_black', 'candy_orange', 'hat_green', 'cat', 'pumpkin_white', 'candle_orange', 'spider_green', 'bat_black'],
+    slots: [
+      { id: 'vines', name: 'Vine patch', x: 24, y: 96, capacity: 3, style: 'none', rules: [is('color', 'green')] },
+      { id: 'hay', name: 'Hay bale', x: 100, y: 74, capacity: 3, style: 'none', rules: [countAtLeast('category', 'pumpkin', 1), allSame('size')] },
+      { id: 'barrow', name: 'Wheelbarrow', x: 180, y: 88, capacity: 3, style: 'none', rules: [allSame('color')] },
+      { id: 'fence', name: 'Fence', x: 252, y: 50, capacity: 3, style: 'none', rules: [not(is('category', 'candy'))] },
+    ],
+  },
+  {
+    // Only candies fit the high shelf, only critters the low one. The three
+    // lights are the only trio for "Same kind". Two hats remain but the hearth
+    // takes at most one, so one hat must find a same-color partner on the sill.
+    id: 'halloween-3',
+    title: "Witch's Kitchen",
+    backdrop: 'kitchen',
+    cover: 'cauldron',
+    intro:
+      'Five spots now. Notice the Max tag on the hearth: if two of something are left, where can the second one go?',
+    items: ['hat_black', 'candy_purple', 'jack', 'pumpkin_green', 'spider_green', 'candle_orange', 'potion_purple', 'hat_green', 'candy_green', 'pumpkin_purple', 'bat_black', 'candle_bone'],
+    slots: [
+      { id: 'high', name: 'High shelf', x: 24, y: 28, capacity: 2, style: 'none', rules: [oneOf('category', ['candy', 'spooky'])] },
+      { id: 'low', name: 'Low shelf', x: 80, y: 54, capacity: 2, style: 'none', rules: [is('category', 'critter')], tag: { x: 97, y: 75, align: 'center' } },
+      { id: 'counter', name: 'Counter', x: 18, y: 81, capacity: 3, style: 'none', rules: [allSame('category')] },
+      { id: 'sill', name: 'Window sill', x: 247, y: 37, capacity: 2, style: 'none', rules: [allSame('color')], tag: { x: 232, y: 40, align: 'right' } },
+      { id: 'hearth', name: 'Hearth', x: 228, y: 91, capacity: 3, style: 'none', rules: [countAtMost('category', 'hat', 1)] },
+    ],
+  },
+  // rooms 9 and 10 are appended below once designed
+];

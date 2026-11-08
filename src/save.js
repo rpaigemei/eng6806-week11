@@ -31,3 +31,8 @@ export function persist(save) {
 export function isUnlocked(save, theme, index) {
   return index === 0 || !!save.solved[theme.levels[index - 1].id];
 }
+
+/** Theme 0 is always open; each later holiday opens once the one before is fully tidy. */
+export function isThemeUnlocked(save, themes, index) {
+  return index === 0 || themes[index - 1].levels.every((l) => !!save.solved[l.id]);
+}

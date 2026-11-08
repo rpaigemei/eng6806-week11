@@ -32,6 +32,7 @@ const game = {
   go(name, params = {}) {
     this.scene = SCENES[name](this, params);
     this.sceneName = name;
+    this.audio.setSong(this.scene.song);
     this.fade = 1;
   },
 };
@@ -93,7 +94,8 @@ window.addEventListener('keydown', (e) => {
 let last = performance.now();
 let t = 0;
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
+  // rAF timestamps can be a hair earlier than our first performance.now(); never go backwards
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
   last = now;
   t += dt;
   ctx.setTransform(k, 0, 0, k, 0, 0);

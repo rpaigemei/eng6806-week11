@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { THEMES } from '../src/themes/index.js';
+import { THEMES, roomNumber } from '../src/themes/index.js';
+import { isThemeUnlocked } from '../src/save.js';
 import { TEMPLATES, ICONS, COLORWAYS } from '../src/render/spriteData.js';
 import { PAL } from '../src/render/palette.js';
 import {
@@ -24,14 +25,24 @@ function scramble(state, seed) {
   }
 }
 
-// Difficulty ramp: [min ambiguous share, max naive share] per room.
-const RAMP = [
-  [0.15, 1],
-  [0.5, 1],
-  [0.6, 0.75],
-  [0.65, 0.6],
-  [0.75, 0.4],
-];
+// Difficulty ramp per holiday: [min ambiguous share, max naive share, min depth] per room.
+const RAMP = {
+  winter: [
+    [0.15, 1, 0],
+    [0.5, 1, 0],
+    [0.6, 0.75, 0],
+    [0.65, 0.6, 0],
+    [0.75, 0.4, 0],
+  ],
+  // Halloween unlocks after Winter, so it keeps climbing: no "obvious" first moves.
+  halloween: [
+    [0.8, 0.25, 0],
+    [0.8, 0.25, 3],
+    [0.8, 0.25, 3],
+    [0.8, 0.25, 3],
+    [0.8, 0.25, 3],
+  ],
+};
 
 for (const theme of THEMES) {
   for (const level of theme.levels) {
@@ -77,14 +88,43 @@ for (const theme of THEMES) {
   });
 }
 
-test('winter difficulty ramps up', () => {
-  const theme = THEMES[0];
-  theme.levels.forEach((level, i) => {
-    const st = levelStats(level, theme.catalog);
-    const [minAmb, maxNaive] = RAMP[i];
-    assert.ok(st.ambiguous >= minAmb, `${level.id} ambiguous ${st.ambiguous}`);
-    assert.ok(st.naive <= maxNaive, `${level.id} naive ${st.naive}`);
+for (const theme of THEMES) {
+  test(`${theme.id} difficulty ramps up`, () => {
+    assert.ok(RAMP[theme.id], `add difficulty targets for ${theme.id}`);
+    theme.levels.forEach((level, i) => {
+      const st = levelStats(level, theme.catalog);
+      const [minAmb, maxNaive, minDepth] = RAMP[theme.id][i];
+      assert.ok(st.ambiguous >= minAmb, `${level.id} ambiguous ${st.ambiguous}`);
+      assert.ok(st.naive <= maxNaive, `${level.id} naive ${st.naive}`);
+      assert.ok(st.depth >= minDepth, `${level.id} depth ${st.depth}`);
+    });
   });
+}
+
+test('every holiday has 5 rooms, unique ids, and title-screen pieces', () => {
+  const ids = new Set();
+  for (const theme of THEMES) {
+    assert.equal(theme.levels.length, 5, theme.id);
+    for (const l of theme.levels) {
+      assert.ok(!ids.has(l.id), `duplicate ${l.id}`);
+      ids.add(l.id);
+      assert.ok(theme.backdrops[l.backdrop], `${l.id} backdrop ${l.backdrop}`);
+    }
+    assert.ok(theme.catalog[theme.box.peek], `${theme.id} box peek item`);
+    assert.equal(typeof theme.windowScene, 'function');
+    assert.ok(theme.song?.bars?.length && theme.backdrops[theme.selectBackdrop]);
+  }
+});
+
+test('holidays unlock in order', () => {
+  const save = { solved: {} };
+  assert.equal(isThemeUnlocked(save, THEMES, 0), true);
+  assert.equal(isThemeUnlocked(save, THEMES, 1), false);
+  for (const l of THEMES[0].levels.slice(0, 4)) save.solved[l.id] = true;
+  assert.equal(isThemeUnlocked(save, THEMES, 1), false);
+  save.solved[THEMES[0].levels[4].id] = true;
+  assert.equal(isThemeUnlocked(save, THEMES, 1), true);
+  assert.equal(roomNumber(THEMES[1].levels[0].id), THEMES[0].levels.length + 1);
 });
 
 test('sprite grids are well formed', () => {

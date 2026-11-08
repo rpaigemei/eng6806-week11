@@ -83,6 +83,7 @@ export function decorateScene(game, { levelId }) {
   }
 
   return {
+    song: theme.song,
     update(dt) {
       t += dt;
       particles.update(dt);

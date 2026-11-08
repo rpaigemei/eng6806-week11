@@ -1,8 +1,12 @@
 # Cozy Holiday Tidy-Up
 
-A cozy pixel-art sorting puzzle for the web. The holiday decorations got jumbled. Drag each one from the pile to a spot whose tag it matches, press **DONE**, and enjoy the room once it's tidy. There are no timers and no fail states.
+A cozy pixel-art sorting puzzle for the web. The holiday decorations got jumbled. Drag each one from the pile to a spot whose tag it matches, press **Done**, and enjoy the room once it's tidy. There are no timers and no fail states.
 
-- **5 winter rooms**: Storage Boxes, Trim the Tree, The Mantel, Gift Table, The Grand Tree
+- **Two holidays, 10 rooms:**
+  - **Winter** (rooms 1–5): Storage Boxes, Trim the Tree, The Mantel, Gift Table, The Grand Tree
+  - **Halloween** (rooms 6–10): Front Porch, Pumpkin Patch, Witch's Kitchen, Dusty Attic, Haunted Parlor. Halloween unlocks once every Winter room is tidy, and it keeps climbing in difficulty.
+- **A holiday-neutral start page:** a cozy storage room whose window drifts through each holiday's season, with one storage box per holiday. Click a box to jump into that holiday.
+- **Each holiday has its own original music-box tune**, and the start page has a lighter neutral one.
 - **Rule tags** that build on each other room by room:
   - color, kind and size icons, plus `NO …`
   - `MIXED` (no two alike)
@@ -78,16 +82,20 @@ tools/levelstats.js      difficulty report for level design
 
 ## Adding a new holiday
 
-Themes are data. Copy `src/themes/winter/` to e.g. `src/themes/spooky/`, then:
+Themes are data: Winter and Halloween use exactly the same engine. Copy `src/themes/halloween/` to e.g. `src/themes/spring/`, then:
 
 1. Define items in `catalog.js`. Each item has a sprite template, colorway, and `tags` (`category`, `color`, `size`, or any new attribute).
 2. Write levels in `levels.js` using the rule helpers in `src/engine/rules.js`:
    - simple tags: `R.is`, `R.oneOf`, `R.not`, `R.all`, `R.any`
    - group tags: `R.countAtMost`, `R.countAtLeast`, `R.allDifferent`, `R.allSame`, `R.noAdjacent`
-3. Draw rooms in `backdrops.js` with the helpers in `src/render/scenery.js`.
-4. Register the theme in `src/themes/index.js`.
+3. Draw rooms in `backdrops.js` with the helpers in `src/render/scenery.js`. Also export a `windowScene()` for the start page's window.
+4. In `theme.js`, set:
+   - a `song` (add an original waltz to `src/songs.js`)
+   - a `selectBackdrop`
+   - a `box` (label, peeking item and colors) for the start page's shelf
+5. Register the theme in `src/themes/index.js`. It unlocks after the holiday before it, and its rooms are numbered after that holiday's.
 
-The tests then check automatically that the new levels have exactly one solution and can be solved fairly. `tools/levelstats.js` helps you tune difficulty.
+The tests then check automatically that the new levels have exactly one solution, can be solved fairly and ramp up in difficulty (add targets for the new holiday to `RAMP` in `tests/levels.test.js`), and that the theme has all its start-page pieces. `tools/levelstats.js` helps you tune difficulty.
 
 ## License
 
