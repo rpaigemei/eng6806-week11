@@ -115,6 +115,10 @@ export function puzzleScene(game, { levelId }) {
     if (!drag) return null;
     const c = { x: drag.x + 8, y: drag.y + 8 };
     if (c.y >= TRAY_Y + 4) return { pile: true };
+    // A drop right on a spot's cells always goes there; padded zones only
+    // help when the item lands near, but not on, a spot.
+    const direct = state.slots.find((s) => inRect(c, { x: s.x, y: s.y, w: slotWidth(s), h: 16 }));
+    if (direct) return { slot: direct };
     let best = null;
     let bestD = Infinity;
     for (const s of state.slots) {

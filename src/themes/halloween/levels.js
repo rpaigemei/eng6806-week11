@@ -18,9 +18,9 @@ export const LEVELS = [
     items: ['potion_orange', 'cat', 'bat_black', 'pumpkin_white', 'hat_green', 'candy_green', 'ghost', 'cauldron', 'potion_purple'],
     slots: [
       { id: 'sill', name: 'Window sill', x: 37, y: 52, capacity: 2, style: 'none', rules: [is('color', 'white')] },
-      { id: 'door', name: 'By the door', x: 104, y: 88, capacity: 2, style: 'none', rules: [allSame('category')] },
+      { id: 'door', name: 'By the door', x: 96, y: 88, capacity: 2, style: 'none', rules: [allSame('category')] },
       { id: 'rail', name: 'Railing', x: 252, y: 64, capacity: 2, style: 'none', rules: [not(is('category', 'hat'))] },
-      { id: 'steps', name: 'Steps', x: 134, y: 106, capacity: 3, style: 'none', rules: [allSame('size')], tag: { x: 160, y: 94, align: 'center' } },
+      { id: 'steps', name: 'Steps', x: 140, y: 106, capacity: 3, style: 'none', rules: [allSame('size')], tag: { x: 166, y: 94, align: 'center' } },
     ],
   },
   {
@@ -80,5 +80,26 @@ export const LEVELS = [
       { id: 'crates', name: 'Crates', x: 236, y: 90, capacity: 3, style: 'none', rules: [countAtLeast('category', 'candy', 1)] },
     ],
   },
-  // room 10 is appended below once designed
+  {
+    // The finale. The skull is the only spook. The white pumpkin and green
+    // spider are the only things of their colors, so neither can join a
+    // same-color mantel: they split between the side table and the chaise.
+    // Count the trios (three purples, four blacks, four oranges, four lights,
+    // three pumpkins, three critters) and test "what if?" on the side table.
+    // Finish by spacing the chaise so no neighbors share a color.
+    id: 'halloween-5',
+    title: 'Haunted Parlor',
+    backdrop: 'parlor',
+    cover: 'ghost',
+    intro:
+      'The grand finale! Count how many of each color and kind you have: some only come in threes. Then ask "what if?" Drag within the chaise to space out its colors.',
+    items: ['candle_purple', 'cat', 'pumpkin_white', 'jack', 'bat_purple', 'candy_orange', 'skull', 'hat_black', 'pumpkin_orange', 'spider_green', 'candle_black', 'cauldron', 'pumpkin_purple', 'candle_orange'],
+    slots: [
+      { id: 'top', name: 'Above the mantel', x: 152, y: 10, capacity: 1, style: 'none', rules: [is('category', 'spooky')], tag: { x: 172, y: 13, align: 'left' } },
+      { id: 'left', name: 'Mantel, left', x: 96, y: 40, capacity: 3, style: 'none', rules: [allSame('color')], tag: { x: 92, y: 44, align: 'right' } },
+      { id: 'right', name: 'Mantel, right', x: 172, y: 40, capacity: 3, style: 'none', rules: [allSame('color'), not(is('category', 'lantern'))], tag: { x: 228, y: 44, align: 'left' } },
+      { id: 'table', name: 'Side table', x: 18, y: 69, capacity: 3, style: 'none', rules: [allSame('category')], tag: { x: 44, y: 94, align: 'center' } },
+      { id: 'chaise', name: 'Chaise', x: 238, y: 88, capacity: 4, style: 'none', rules: [noAdjacent('color'), countAtMost('category', 'critter', 1)] },
+    ],
+  },
 ];

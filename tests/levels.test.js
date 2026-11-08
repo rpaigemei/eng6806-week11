@@ -116,6 +116,23 @@ test('every holiday has 5 rooms, unique ids, and title-screen pieces', () => {
   }
 });
 
+test('spots are never cramped together (drop targets stay unambiguous)', () => {
+  for (const theme of THEMES) {
+    for (const level of theme.levels) {
+      const rects = level.slots.map((s) => ({ id: s.id, ...slotRect(s) }));
+      for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) {
+          const a = rects[i];
+          const b = rects[j];
+          const gapX = Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w));
+          const gapY = Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h));
+          assert.ok(gapX >= 6 || gapY >= 6, `${level.id}: ${a.id} and ${b.id} are too close`);
+        }
+      }
+    }
+  }
+});
+
 test('holidays unlock in order', () => {
   const save = { solved: {} };
   assert.equal(isThemeUnlocked(save, THEMES, 0), true);
