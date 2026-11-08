@@ -12,17 +12,44 @@ export function cellPos(slot, index) {
   return { x: slot.x + index * PITCH, y: slot.y };
 }
 
-/** Create a fresh play state: everything starts in the pile. */
+// ---------- twists: pinned items and tied pairs ----------
+
+/** Items frozen in place from the start: { itemId: slotId }. */
+export const pinsOf = (level) => level.pinned || {};
+
+/** itemId -> partner itemId for every tied pair. */
+export function partnersOf(level) {
+  const out = {};
+  for (const [a, b] of level.pairs || []) {
+    out[a] = b;
+    out[b] = a;
+  }
+  return out;
+}
+
+export function isPinned(state, itemId) {
+  return itemId in pinsOf(state.level);
+}
+
+function placePins(state) {
+  const pins = pinsOf(state.level);
+  for (const s of state.slots) s.items = state.level.items.filter((id) => pins[id] === s.id);
+  state.pile = state.level.items.filter((id) => !(id in pins));
+}
+
+/** Create a fresh play state: everything starts in the pile (except pinned items). */
 export function createState(level, catalog) {
   const home = {};
   level.items.forEach((id, i) => (home[id] = i));
-  return {
+  const state = {
     level,
     catalog,
     home,
-    pile: [...level.items],
+    pile: [],
     slots: level.slots.map((s) => ({ ...s, items: [] })),
   };
+  placePins(state);
+  return state;
 }
 
 export function getSlot(state, slotId) {
@@ -52,12 +79,23 @@ function returnToPile(state, itemId) {
   state.pile.sort((a, b) => state.home[a] - state.home[b]);
 }
 
+/** Index of the unpinned item nearest to `index` in a slot, or -1. */
+function swapIndex(state, slot, index) {
+  let best = -1;
+  slot.items.forEach((id, i) => {
+    if (isPinned(state, id)) return;
+    if (best < 0 || Math.abs(i - index) < Math.abs(best - index)) best = i;
+  });
+  return best;
+}
+
 /**
  * Move an item. slotId null sends it home to the pile. If the target slot is full,
- * the item at `index` (or the last one) swaps back to where the moved item came from.
- * Returns { ok, swappedId }.
+ * the unpinned item at (or nearest) `index` swaps back to where the moved item came from.
+ * Pinned items never move. Returns { ok, swappedId, pinned? }.
  */
 export function moveItem(state, itemId, slotId, index = Infinity) {
+  if (isPinned(state, itemId)) return { ok: false, swappedId: null, pinned: true };
   const from = locate(state, itemId);
   if (slotId === null) {
     removeItem(state, itemId);
@@ -75,7 +113,8 @@ export function moveItem(state, itemId, slotId, index = Infinity) {
 
   let swappedId = null;
   if (slot.items.length >= slot.capacity) {
-    const si = Math.min(index, slot.items.length - 1);
+    const si = swapIndex(state, slot, Math.min(index, slot.items.length - 1));
+    if (si < 0) return { ok: false, swappedId: null, pinned: true };
     swappedId = slot.items[si];
     slot.items.splice(si, 1);
     if (from.slotId === null) {
@@ -93,13 +132,13 @@ export function moveItem(state, itemId, slotId, index = Infinity) {
 }
 
 export function resetState(state) {
-  for (const s of state.slots) s.items = [];
-  state.pile = [...state.level.items];
+  placePins(state);
 }
 
 /**
  * All rule problems among placed items. Item-level entries name the item;
  * slot-level entries ({ itemId: null }) are rules like "at least 1 bell" on a full spot.
+ * Tied pairs placed in different spots break { op: 'together', with: partnerId }.
  */
 export function violations(state) {
   const out = [];
@@ -112,6 +151,19 @@ export function violations(state) {
     if (contents.length === s.capacity) {
       const failed = slotRuleFails(s.rules, contents);
       if (failed.length) out.push({ itemId: null, slotId: s.id, rules: failed });
+    }
+  }
+  for (const [a, b] of state.level.pairs || []) {
+    const la = locate(state, a).slotId;
+    const lb = locate(state, b).slotId;
+    if (la && lb && la !== lb) {
+      for (const [id, sid, other] of [[a, la, b], [b, lb, a]]) {
+        if (isPinned(state, id)) continue;
+        const existing = out.find((v) => v.itemId === id);
+        const rule = { op: 'together', with: other };
+        if (existing) existing.rules.push(rule);
+        else out.push({ itemId: id, slotId: sid, rules: [rule] });
+      }
     }
   }
   return out;
@@ -163,10 +215,36 @@ export function arrangeSlot(slot, contents) {
 }
 
 /**
- * Backtracking solver. `fixed` pins items to slots; `prefer` is tried first.
+ * Tied pairs: can `item` go into `slot` given the current `contents` map?
+ * If its partner is already placed it must be this slot; otherwise the slot
+ * must have room for both and fit both.
+ */
+function pairFits(level, catalog, partners, contents, slot, item) {
+  const p = partners[item.id];
+  if (!p) return true;
+  const where = Object.keys(contents).find((sid) => contents[sid].some((x) => x.id === p));
+  if (where) return where === slot.id;
+  const c = contents[slot.id];
+  return c.length + 2 <= slot.capacity && !!arrangeSlot(slot, [...c, item, catalog[p]]);
+}
+
+/** Starting contents with pinned items already in place. */
+function pinnedContents(level, catalog) {
+  const pins = pinsOf(level);
+  const contents = Object.fromEntries(level.slots.map((s) => [s.id, []]));
+  for (const id of level.items) if (pins[id]) contents[pins[id]].push(catalog[id]);
+  return contents;
+}
+
+const freeItems = (level) => level.items.filter((id) => !(id in pinsOf(level)));
+
+/**
+ * Backtracking solver. `fixed` pins items to slots (pinned items always are); `prefer` is tried first.
  * Returns { assign: { itemId: slotId }, orders: { slotId: [itemId...] } } or null.
  */
 export function solveWithOrder(level, catalog, { fixed = {}, prefer = {} } = {}) {
+  fixed = { ...fixed, ...pinsOf(level) };
+  const partners = partnersOf(level);
   const contents = Object.fromEntries(level.slots.map((s) => [s.id, []]));
   const slotById = Object.fromEntries(level.slots.map((s) => [s.id, s]));
   const assign = {};
@@ -177,6 +255,7 @@ export function solveWithOrder(level, catalog, { fixed = {}, prefer = {} } = {})
   for (const s of level.slots) {
     if (contents[s.id].length > s.capacity || !arrangeSlot(s, contents[s.id])) return null;
   }
+  for (const [a, b] of level.pairs || []) if (assign[a] && assign[b] && assign[a] !== assign[b]) return null;
   const free = level.items.filter((id) => !(id in fixed)).map((id) => catalog[id]);
   const options = new Map(free.map((it) => [it.id, staticOptions(level, it)]));
   free.sort((a, b) => options.get(a.id).length - options.get(b.id).length);
@@ -189,6 +268,7 @@ export function solveWithOrder(level, catalog, { fixed = {}, prefer = {} } = {})
     for (const s of opts) {
       const c = contents[s.id];
       if (c.length >= s.capacity) continue;
+      if (!pairFits(level, catalog, partners, contents, s, it)) continue;
       c.push(it);
       if (arrangeSlot(slotById[s.id], c)) {
         assign[it.id] = s.id;
@@ -217,8 +297,9 @@ export function staticOptions(level, item) {
 
 /** Count distinct item->slot assignments that can be arranged legally (capped). */
 export function countSolutions(level, catalog, cap = 1000) {
-  const contents = Object.fromEntries(level.slots.map((s) => [s.id, []]));
-  const items = level.items.map((id) => catalog[id]);
+  const contents = pinnedContents(level, catalog);
+  const partners = partnersOf(level);
+  const items = freeItems(level).map((id) => catalog[id]);
   let n = 0;
   const bt = (k) => {
     if (n >= cap) return;
@@ -229,6 +310,7 @@ export function countSolutions(level, catalog, cap = 1000) {
     for (const s of level.slots) {
       const c = contents[s.id];
       if (c.length >= s.capacity) continue;
+      if (!pairFits(level, catalog, partners, contents, s, items[k])) continue;
       c.push(items[k]);
       if (arrangeSlot(s, c)) bt(k + 1);
       c.pop();
@@ -245,21 +327,25 @@ export function countSolutions(level, catalog, cap = 1000) {
  * (high = a long chain of deductions).
  */
 export function naiveProgress(level, catalog) {
-  const contents = Object.fromEntries(level.slots.map((s) => [s.id, []]));
-  const left = new Set(level.items);
+  const contents = pinnedContents(level, catalog);
+  const partners = partnersOf(level);
+  const total = freeItems(level).length;
+  const left = new Set(freeItems(level));
   let rounds = 0;
   for (;;) {
     const moves = [];
     for (const id of left) {
       const it = catalog[id];
-      const fits = level.slots.filter((s) => contents[s.id].length < s.capacity && arrangeSlot(s, [...contents[s.id], it]));
+      const fits = level.slots.filter(
+        (s) => contents[s.id].length < s.capacity && pairFits(level, catalog, partners, contents, s, it) && arrangeSlot(s, [...contents[s.id], it])
+      );
       if (fits.length === 1) moves.push([id, fits[0].id]);
     }
     // apply this round's moves (skip any that conflict with an earlier one this round)
     let applied = 0;
     for (const [id, sid] of moves) {
       const slot = level.slots.find((s) => s.id === sid);
-      if (contents[sid].length < slot.capacity && arrangeSlot(slot, [...contents[sid], catalog[id]])) {
+      if (contents[sid].length < slot.capacity && pairFits(level, catalog, partners, contents, slot, catalog[id]) && arrangeSlot(slot, [...contents[sid], catalog[id]])) {
         contents[sid].push(catalog[id]);
         left.delete(id);
         applied++;
@@ -268,7 +354,7 @@ export function naiveProgress(level, catalog) {
     if (!applied) break;
     rounds++;
   }
-  return { share: 1 - left.size / level.items.length, rounds };
+  return { share: total ? 1 - left.size / total : 1, rounds };
 }
 
 /**
@@ -281,11 +367,14 @@ export function naiveProgress(level, catalog) {
  * by reasoning alone, with no guessing.
  */
 export function deduce(level, catalog) {
-  const contents = Object.fromEntries(level.slots.map((s) => [s.id, []]));
-  const left = new Set(level.items);
+  const contents = pinnedContents(level, catalog);
+  const partners = partnersOf(level);
+  const total = freeItems(level).length;
+  const left = new Set(freeItems(level));
   const banned = new Map(level.items.map((id) => [id, new Set()]));
 
-  const fits = (s, it, c = contents) => c[s.id].length < s.capacity && !!arrangeSlot(s, [...c[s.id], it]);
+  const fits = (s, it, c = contents) =>
+    c[s.id].length < s.capacity && pairFits(level, catalog, partners, c, s, it) && !!arrangeSlot(s, [...c[s.id], it]);
   const options = (id, c = contents) => level.slots.filter((s) => !banned.get(id).has(s.id) && fits(s, catalog[id], c));
   const place = (id, s) => {
     if (!left.has(id) || !fits(s, catalog[id])) return false;
@@ -344,17 +433,20 @@ export function deduce(level, catalog) {
     if (!progressed) break;
     rounds++;
   }
-  return { share: 1 - left.size / level.items.length, rounds, lookaheads };
+  return { share: total ? 1 - left.size / total : 1, rounds, lookaheads };
 }
 
 /** Difficulty numbers used by tests and tools/levelstats.js. */
 export function levelStats(level, catalog) {
-  const ambiguousItems = level.items.filter((id) => staticOptions(level, catalog[id]).length >= 2);
+  const free = freeItems(level);
+  const ambiguousItems = free.filter((id) => staticOptions(level, catalog[id]).length >= 2);
   const naive = naiveProgress(level, catalog);
   const smart = deduce(level, catalog);
   return {
     solutions: countSolutions(level, catalog, 100),
-    ambiguous: ambiguousItems.length / level.items.length,
+    ambiguous: ambiguousItems.length / free.length,
+    pins: Object.keys(pinsOf(level)).length,
+    pairs: (level.pairs || []).length,
     naive: naive.share,
     fair: smart.share,
     depth: smart.rounds,
@@ -411,7 +503,7 @@ export function hint(state) {
 
   const fresh = solve(state.level, state.catalog, { prefer: fixed });
   if (!fresh) return { type: 'done' };
-  const misplaced = Object.keys(fixed).filter((id) => fresh[id] !== fixed[id]);
+  const misplaced = Object.keys(fixed).filter((id) => fresh[id] !== fixed[id] && !isPinned(state, id));
   const hasRoom = (sid) => getSlot(state, sid).items.length < getSlot(state, sid).capacity;
   // Prefer an item from the unhappy spot, then one whose real home has room.
   misplaced.sort(
@@ -444,6 +536,14 @@ export function validateLevel(level, catalog) {
     } catch (e) {
       errors.push(`${level.id}/${s.id}: ${e.message}`);
     }
+  }
+  for (const [id, sid] of Object.entries(pinsOf(level))) {
+    const slot = level.slots.find((s) => s.id === sid);
+    if (!level.items.includes(id) || !slot) errors.push(`${level.id}: bad pin ${id} -> ${sid}`);
+    else if (!slot.rules.every((r) => passes(r, catalog[id], [catalog[id]], 0))) errors.push(`${level.id}: pin ${id} breaks ${sid}'s rules`);
+  }
+  for (const pair of level.pairs || []) {
+    if (pair.length !== 2 || !pair.every((id) => level.items.includes(id))) errors.push(`${level.id}: bad pair ${pair}`);
   }
   if (!errors.length && !solve(level, catalog)) errors.push(`${level.id}: no solution`);
   return errors;

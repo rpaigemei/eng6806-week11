@@ -6,19 +6,22 @@ import { drawSlotBack, drawSlotFront, drawSlotHardware, slotWidth } from '../ren
 import { drawTag, tagRect, drawTagString, drawSpotFrame } from '../render/tags.js';
 import { ButtonSet, addHud } from '../ui.js';
 import { describe } from '../engine/rules.js';
-import { createState, moveItem, locate, getSlot, check, hint, resetState, cellPos, PITCH } from '../engine/level.js';
+import { createState, moveItem, locate, getSlot, check, hint, resetState, cellPos, PITCH, isPinned, partnersOf } from '../engine/level.js';
+import { starsFor, recordSolve, levelStars } from '../rewards.js';
 import { findLevel, roomNumber, THEMES } from '../themes/index.js';
 import { persist } from '../save.js';
-import { TRAY_Y, pilePos, drawTray, drawInfo, Glide, drawItem, itemInfo, Particles } from './common.js';
+import { TRAY_Y, pilePos, drawTray, drawInfo, Glide, drawItem, itemInfo, Particles, drawIce, drawRibbon } from './common.js';
+import { iconSprite } from '../render/sprites.js';
 
 const inRect = (p, r, pad = 0) => p.x >= r.x - pad && p.x < r.x + r.w + pad && p.y >= r.y - pad && p.y < r.y + r.h + pad;
 
 export function puzzleScene(game, { levelId }) {
-  const { theme, level, index } = findLevel(levelId);
+  const { theme, level, index, isBonus } = findLevel(levelId);
   // next room: the following one in this holiday, or the first room of the next holiday
   const nextTheme = THEMES[THEMES.indexOf(theme) + 1] || null;
-  const next = theme.levels[index + 1] || nextTheme?.levels[0] || null;
-  const nextIsNewHoliday = !theme.levels[index + 1] && !!next;
+  const next = isBonus ? null : theme.levels[index + 1] || nextTheme?.levels[0] || null;
+  const nextIsNewHoliday = !isBonus && !theme.levels[index + 1] && !!next;
+  const partners = partnersOf(level);
   const state = createState(level, theme.catalog);
   const backdrop = theme.backdrops[level.backdrop];
   const glide = new Glide();
@@ -39,6 +42,14 @@ export function puzzleScene(game, { levelId }) {
   let solvedAt = null;
   const wiggle = {};
   const flash = {}; // slotId -> { rules:Set, until }
+  const pops = {}; // itemId -> time it landed (squash-and-stretch)
+  const pulses = {}; // slotId -> time it filled up (warm glow)
+  // stars: ★ solved, ★ no hints, ★ first Done right
+  let hintsUsed = 0;
+  let wrongDones = 0;
+  let stars = 0;
+  let finale = null; // { start, lit } spot-by-spot reveal after solving
+  const confetti = theme.confetti || [PAL.w, PAL.c];
 
   const vocab = theme.vocab;
   const rulesText = (slot) => slot.rules.map((r) => describe(r, vocab)).join(', ');
@@ -55,8 +66,11 @@ export function puzzleScene(game, { levelId }) {
     overlayButtons.list = [];
     overlayButtons.add({ x: 120, y: 108, w: 80, h: 16, label: "Let's tidy!", style: 'gold', onClick: closeOverlay });
   }
+  let completeAt = 0;
+  const starSounded = [false, false, false];
   function overlayComplete() {
     overlay = 'complete';
+    completeAt = t;
     overlayButtons.list = [];
     const bw = 62;
     const list = [];
@@ -196,6 +210,7 @@ export function puzzleScene(game, { levelId }) {
     }
     const res = check(state);
     if (res.solved) return celebrate();
+    wrongDones++;
     game.audio.play('wrong');
     for (const v of res.violations) {
       const slot = getSlot(state, v.slotId);
@@ -222,6 +237,7 @@ export function puzzleScene(game, { levelId }) {
 
   function onHint() {
     const h = hint(state);
+    hintsUsed++;
     game.audio.play('hint');
     const key = boardKey() + JSON.stringify([h.type, h.itemId, h.slotId, h.from]);
     hintTier = key === hintKey ? Math.min(3, hintTier + 1) : 1;
@@ -234,7 +250,13 @@ export function puzzleScene(game, { levelId }) {
     const flashAll = (sl) => (flash[sl.id] = { rules: new Set(sl.rules.map((_, i) => i)), until: t + 3 });
     let hl = { itemId: null, slotId: null };
 
-    if (h.type === 'wrong') {
+    if (h.type === 'wrong' && h.rule.op === 'together') {
+      const other = theme.catalog[h.rule.with];
+      if (tier === 1) say(`Check the ribbons: something tied isn't together.`, PAL.o);
+      else if (tier === 2) say(`Tied things must share a spot.`, PAL.o);
+      else say(`The ${lc(item)} is tied to the ${lc(other)}: put them in the same spot.`, PAL.o);
+      hl = { itemId: tier === 3 ? h.itemId : null, slotId: slot.id };
+    } else if (h.type === 'wrong') {
       if (tier === 1) say(`Something on the ${lc(slot)} isn't happy.`, PAL.o);
       else if (tier === 2) {
         say(`Check the ${lc(slot)}: ${describe(h.rule, vocab)}.`, PAL.o);
@@ -305,17 +327,32 @@ export function puzzleScene(game, { levelId }) {
   function celebrate() {
     if (coach) endCoach();
     solvedAt = t;
-    game.save.solved[level.id] = true;
+    stars = starsFor({ hintsUsed, wrongDones });
+    recordSolve(game.save, level, stars);
     persist(game.save);
-    game.audio.play('solve');
-    say(nextIsNewHoliday ? `All tidy! ${theme.name} is complete.` : next ? 'All tidy! The next room is unlocked.' : 'All tidy! Every room is done.', UI.good);
-    for (const s of state.slots) {
+    say(isBonus ? 'Bonus room tidy! What a pro.' : nextIsNewHoliday ? `All tidy! ${theme.name} is complete.` : next ? 'All tidy! The next room is unlocked.' : 'All tidy! Every room is done.', UI.good);
+    // the finale: each spot lights up in turn, then the whole room glows
+    finale = { start: t, lit: 0 };
+  }
+  const FINALE_STEP = 0.28;
+  function updateFinale() {
+    if (!finale) return;
+    const n = state.slots.length;
+    while (finale.lit < n && t - finale.start >= finale.lit * FINALE_STEP) {
+      const s = state.slots[finale.lit];
       s.items.forEach((id, i) => {
         const p = cellPos(s, i);
-        particles.burst(p.x + 8, p.y + 8, 10);
+        particles.burst(p.x + 8, p.y + 8, 8);
       });
+      pulses[s.id] = t;
+      game.audio.play('note', { i: finale.lit });
+      finale.lit++;
     }
-    particles.snowfall(80);
+    if (finale.lit === n && !finale.flared && t - finale.start >= n * FINALE_STEP) {
+      finale.flared = t;
+      game.audio.play('solve');
+      particles.snowfall(90, confetti);
+    }
   }
 
   function drop() {
@@ -324,14 +361,29 @@ export function puzzleScene(game, { levelId }) {
     if (target?.pile) {
       if (locate(state, id).slotId) {
         moveItem(state, id, null);
-        game.audio.play('place');
+        game.audio.play('placeItem', { category: theme.catalog[id].tags.category });
+        pops[id] = t;
       }
     } else if (target?.slot) {
       const s = target.slot;
+      const wasFull = s.items.length >= s.capacity;
       const idx = Math.max(0, Math.round((drag.x - s.x) / PITCH));
       const res = moveItem(state, id, s.id, idx);
-      game.audio.play(res.swappedId ? 'swap' : 'place');
-      if (res.swappedId) delete wiggle[res.swappedId];
+      if (!res.ok) {
+        game.audio.play('frozen');
+        say("That spot is full of frozen things.");
+      } else {
+        game.audio.play('placeItem', { category: theme.catalog[id].tags.category });
+        pops[id] = t;
+        const p = cellPos(s, locate(state, id).index);
+        particles.puff(p.x + 8, p.y + 16);
+        if (res.swappedId) delete wiggle[res.swappedId];
+        if (!wasFull && s.items.length === s.capacity) {
+          // a spot just filled up: soft rising chime + warm glow (never says right or wrong)
+          pulses[s.id] = t;
+          game.audio.play('settle', { n: state.slots.filter((x) => x.items.length === x.capacity).length - 1 });
+        }
+      }
     } else {
       game.audio.play('click');
     }
@@ -350,7 +402,12 @@ export function puzzleScene(game, { levelId }) {
     }
     if (message && t - message.at < 4) return message;
     const focus = hoverItem || selected?.itemId;
-    if (focus) return { text: itemInfo(theme, theme.catalog[focus]), color: UI.paper };
+    if (focus) {
+      let text = itemInfo(theme, theme.catalog[focus]);
+      if (isPinned(state, focus)) text = `${theme.catalog[focus].name} is frozen in place: it already belongs here.`;
+      else if (partners[focus]) text += ` - tied to the ${theme.catalog[partners[focus]].name.toLowerCase()}`;
+      return { text, color: UI.paper };
+    }
     const slot = hoverSlot || (selected?.slotId && getSlot(state, selected.slotId));
     if (slot) return { text: `${slot.name}: ${rulesText(slot)}`, color: PAL.o };
     if (coach) return { text: coachText(), color: PAL.o };
@@ -365,11 +422,19 @@ export function puzzleScene(game, { levelId }) {
       coachUpdate();
       for (const k of Object.keys(wiggle)) if ((wiggle[k] -= dt) <= 0) delete wiggle[k];
       particles.update(dt);
-      if (solvedAt !== null && overlay === null && t - solvedAt > 1.6) overlayComplete();
+      updateFinale();
+      const finaleLen = state.slots.length * FINALE_STEP + 1.3;
+      if (solvedAt !== null && overlay === null && t - solvedAt > finaleLen) overlayComplete();
     },
 
     draw(ctx, _t, dt) {
-      backdrop.draw(ctx, t, dt);
+      // the room wakes up as spots fill (full = right or wrong, so it never gives answers away)
+      const full = state.slots.filter((x) => x.items.length === x.capacity).length;
+      const alive = finale ? 1 : full / state.slots.length;
+      backdrop.draw(ctx, t, dt, { alive });
+      ctx.globalAlpha = 0.32 * (1 - alive);
+      rect(ctx, '#140c1c', 0, 0, 320, TRAY_Y);
+      ctx.globalAlpha = 1;
       const target = dropTarget();
       const hl = highlight && t < highlight.until ? highlight : null;
       const pulse = Math.floor(t * 4) % 2 === 0;
@@ -401,7 +466,9 @@ export function puzzleScene(game, { levelId }) {
         if (hl && hl.itemId === id && pulse) outline = PAL.y;
         else if (wiggle[id] && flashFor(id)) outline = PAL.r;
         else if (hoverItem === id || selected?.itemId === id) outline = PAL.o;
-        drawItem(ctx, item, x, pos.y, { outline, plate });
+        const pop = pops[id] !== undefined && t - pops[id] < 0.3 ? (t - pops[id]) / 0.3 : null;
+        drawItem(ctx, item, x, pos.y, { outline, plate, pop });
+        if (isPinned(state, id)) drawIce(ctx, x, pos.y, t);
       };
       const flashFor = (id) => locate(state, id).slotId;
 
@@ -409,6 +476,16 @@ export function puzzleScene(game, { levelId }) {
         for (const id of s.items) if (!drag || drag.itemId !== id) drawPlaced(id);
         drawSlotFront(ctx, s);
         drawSlotHardware(ctx, s);
+      }
+      // warm glow on spots that just filled up (and during the finale)
+      for (const s of state.slots) {
+        const age = pulses[s.id] !== undefined ? t - pulses[s.id] : 9;
+        if (age > 0.8) continue;
+        const k = 1 - age / 0.8;
+        const grow = Math.round(age * 10);
+        ctx.globalAlpha = 0.45 * k;
+        rect(ctx, UI.glow, s.x - 3 - grow, s.y - 3 - grow, slotWidth(s) + 6 + grow * 2, 22 + grow * 2);
+        ctx.globalAlpha = 1;
       }
       for (const s of state.slots) {
         const f = flash[s.id] && t < flash[s.id].until ? flash[s.id].rules : null;
@@ -418,8 +495,8 @@ export function puzzleScene(game, { levelId }) {
       }
 
       // celebration glow
-      if (solvedAt !== null) {
-        const k = Math.max(0, 1 - (t - solvedAt) / 2);
+      if (finale?.flared) {
+        const k = Math.max(0, 1 - (t - finale.flared) / 1.5);
         ctx.globalAlpha = 0.25 * k;
         rect(ctx, UI.glow, 0, 0, 320, TRAY_Y);
         ctx.globalAlpha = 1;
@@ -429,6 +506,15 @@ export function puzzleScene(game, { levelId }) {
       const info = infoText();
       drawInfo(ctx, info.text, info.color);
       for (const id of state.pile) if (!drag || drag.itemId !== id) drawPlaced(id, true);
+      // ribbons between tied items, wherever they are
+      for (const [a, b] of level.pairs || []) {
+        const center = (id) => {
+          if (drag && drag.itemId === id) return { x: drag.x + 8, y: drag.y };
+          const q = glide.pos.get(id) || targetPos(id);
+          return { x: q.x + 8, y: q.y + 3 };
+        };
+        drawRibbon(ctx, center(a), center(b), t);
+      }
       buttons.draw(ctx, t);
 
       if (drag) drawItem(ctx, theme.catalog[drag.itemId], drag.x, drag.y, { lifted: true });
@@ -445,7 +531,7 @@ export function puzzleScene(game, { levelId }) {
       if (press && !drag && Math.hypot(p.x - press.start.x, p.y - press.start.y) > 2) {
         drag = { itemId: press.itemId, off: press.off, x: p.x - press.off.x, y: p.y - press.off.y };
         selected = null;
-        game.audio.play('pick');
+        game.audio.play('pickItem', { category: theme.catalog[press.itemId].tags.category });
       }
       if (drag) {
         drag.x = Math.round(p.x - drag.off.x);
@@ -462,6 +548,12 @@ export function puzzleScene(game, { levelId }) {
       if (buttons.down(p)) return;
       if (solvedAt !== null) return;
       const id = itemAt(p);
+      if (id && isPinned(state, id)) {
+        wiggle[id] = 0.35;
+        selected = { itemId: id };
+        game.audio.play('frozen');
+        return;
+      }
       if (id) {
         const pos = glide.pos.get(id) || targetPos(id);
         press = { itemId: id, start: p, off: { x: p.x - pos.x, y: p.y - pos.y } };
@@ -509,15 +601,34 @@ export function puzzleScene(game, { levelId }) {
       drawPanel(ctx, 50, top, 220, h);
       rect(ctx, PAL.g, 51, top + 1, 218, 2);
       overlayButtons.list[0].y = top + h - 21;
-      drawText(ctx, `Room ${roomNumber(level.id)}`, 160, top + 7, UI.inkSoft, { align: 'center', size: 8, bold: true });
+      drawText(ctx, isBonus ? 'Bonus room' : `Room ${roomNumber(level.id)}`, 160, top + 7, isBonus ? PAL.Y : UI.inkSoft, { align: 'center', size: 8, bold: true });
       drawText(ctx, level.title, 160, top + 17, PAL.R, { title: 2, align: 'center' });
       lines.forEach((line, i) => drawText(ctx, line, 160, top + 34 + i * 10, UI.ink, { align: 'center', size: 8.5 }));
     } else if (overlay === 'complete') {
-      drawPanel(ctx, 56, 40, 208, 86);
-      rect(ctx, PAL.y, 57, 41, 206, 2);
-      drawText(ctx, 'All tidy!', 160, 52, PAL.R, { title: 3, align: 'center', shadow: PAL.p });
+      drawPanel(ctx, 56, 22, 208, 108);
+      rect(ctx, PAL.y, 57, 23, 206, 2);
+      drawText(ctx, 'All tidy!', 160, 30, PAL.R, { title: 3, align: 'center', shadow: PAL.p });
+      // stars fly in one by one
+      const since = t - completeAt;
+      for (let i = 0; i < 3; i++) {
+        const cx = 160 + (i - 1) * 26;
+        const appear = 0.25 + i * 0.35;
+        const earned = i < stars;
+        if (earned && since >= appear && !starSounded[i]) {
+          starSounded[i] = true;
+          game.audio.play('star');
+          particles.burst(cx, 59, 8);
+        }
+        const k = earned ? Math.min(1, Math.max(0, (since - appear) / 0.2)) : 1;
+        const size = earned ? Math.round(14 + 6 * Math.sin(Math.min(1, k) * Math.PI)) : 14;
+        const img = iconSprite(earned && k > 0 ? 'bigStar' : 'starSlot');
+        if (!earned || k > 0) ctx.drawImage(img, Math.round(cx - size / 2), Math.round(59 - size / 2), size, size);
+      }
       drawText(ctx, `${level.title} looks lovely.`, 160, 74, UI.ink, { align: 'center', size: 9 });
-      drawText(ctx, nextIsNewHoliday ? `${theme.name} is all tidy! ${nextTheme.name} is open.` : next ? `Next up: ${next.title}` : 'You tidied every room. Thank you!', 160, 86, UI.inkSoft, { align: 'center', size: 8 });
+      let tip = '';
+      if (stars < 3) tip = hintsUsed ? 'Solve it without hints for another star.' : 'Get it right on your first Done for another star.';
+      else tip = isBonus ? 'A perfect bonus room!' : nextIsNewHoliday ? `${nextTheme.name} is open!` : next ? `Next up: ${next.title}` : 'You tidied every room. Thank you!';
+      drawText(ctx, tip, 160, 86, UI.inkSoft, { align: 'center', size: 8 });
     }
     overlayButtons.draw(ctx, t);
   }

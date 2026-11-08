@@ -15,6 +15,14 @@ A cozy pixel-art sorting puzzle for the web. The holiday decorations got jumbled
   - `MAX 1`
   - `APART` (neighbors can't match, so order matters)
 - **Every room has exactly one solution** and can be solved by reasoning alone, with no guessing. A test checks this.
+- **Twists:**
+  - **frozen items** start already placed and can't move, like Sudoku's given numbers (introduced in the Gift Table)
+  - **tied pairs** are two items joined by a ribbon that must share a spot (introduced in the Pumpkin Patch)
+- **Rooms come alive:** items squash-and-pop into place with their own little sounds (bells jingle, critters squeak, pumpkins thunk). Each filled spot wakes the room up a bit more: lights switch on and the fire grows. This happens whether the placement is right or wrong, so it never gives answers away. Solving plays a spot-by-spot finale.
+- **Stars:** 3 per room, for solving, solving without hints, and getting it right on your first Done.
+- **Keepsake album:** every decoration you tidy goes into an album with its own short story.
+- **Bonus rooms:** each holiday has an extra-hard bonus room that unlocks with 12 of its 15 stars.
+- **Restart progress:** a button on the start page (after a confirmation) erases stars, album and unlocks but keeps your settings.
 - **Tiered hints:** press once to see where to look, again for which rule matters, and a third time for the exact move.
 - **A guided first room** walks new players through their first drag, reading a tag, and pressing Done.
 - **Color-blind friendly:**
@@ -99,7 +107,13 @@ tools/levelstats.js      difficulty report for level design
 Themes are data: Winter and Halloween use exactly the same engine. Copy `src/themes/halloween/` to e.g. `src/themes/spring/`, then:
 
 1. Define items in `catalog.js`. Each item has a sprite template, colorway, and `tags` (`category`, `color`, `size`, or any new attribute).
-2. Write levels in `levels.js` using the rule helpers in `src/engine/rules.js`:
+2. Write levels in `levels.js` using the rule helpers in `src/engine/rules.js`. A level can also have:
+   - `pinned: { itemId: spotId }` for frozen items
+   - `pairs: [[itemA, itemB]]` for tied items (put tied items next to each other in `items` so they start side by side)
+   - a bonus room exported as `BONUS` and set as `theme.bonus`
+   - a `story` line for every catalog item, for the album
+
+   The rule helpers are:
    - simple tags: `R.is`, `R.oneOf`, `R.not`, `R.all`, `R.any`
    - group tags: `R.countAtMost`, `R.countAtLeast`, `R.allDifferent`, `R.allSame`, `R.noAdjacent`
 3. Draw rooms in `backdrops.js` with the helpers in `src/render/scenery.js`. Also export a `windowScene()` for the start page's window.

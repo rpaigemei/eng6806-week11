@@ -7,12 +7,12 @@
 // depth      rounds of reasoning the careful player needs (higher = longer chain)
 // what-if    "what if?" eliminations needed (case reasoning, the hardest kind)
 // difficulty depth + 2 x what-if; should climb within each holiday
-import { THEMES } from '../src/themes/index.js';
+import { THEMES, allLevels } from '../src/themes/index.js';
 import { levelStats } from '../src/engine/level.js';
 
 for (const theme of THEMES) {
   console.log(`\n${theme.name}`);
-  for (const level of theme.levels) {
+  for (const level of allLevels(theme)) {
     const s = levelStats(level, theme.catalog);
     const pct = (x) => `${Math.round(x * 100)}%`.padStart(5);
     console.log(

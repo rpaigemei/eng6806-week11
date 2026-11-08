@@ -137,14 +137,14 @@ function shelf(ctx, x, y, w) {
   rect(ctx, PAL.N, x + w - 6, y + 3, 2, 4);
 }
 
-function garland(ctx, t, x0, x1, y) {
+function garland(ctx, t, x0, x1, y, lit = 1) {
   // paper bats and orange bulbs instead of Christmas lights
   for (let x = x0; x < x1; x++) {
     const u = ((x - x0) % 40) / 40;
     const yy = y + Math.round(Math.sin(u * Math.PI) * 4);
     rect(ctx, PAL.D, x, yy, 1, 1);
     if ((x - x0) % 20 === 10) {
-      const on = Math.sin(t * 1.5 + x) > -0.3;
+      const on = ((x * 7) % 40) < lit * 40 && Math.sin(t * 1.5 + x) > -0.3;
       ctx.globalAlpha = on ? 0.3 : 0;
       rect(ctx, PAL.a, x - 2, yy, 5, 5);
       ctx.globalAlpha = 1;
@@ -209,8 +209,8 @@ const porch = makeBackdrop(
       rect(ctx, PAL.i, x, 82, 2, 22);
     }
   },
-  (ctx, t, dt) => {
-    garland(ctx, t, 0, 320, 27);
+  (ctx, t, dt, alive = 1) => {
+    garland(ctx, t, 0, 320, 27, alive);
     flicker(ctx, t, 135, 62);
     rect(ctx, PAL.k, 133, 60, 5, 8);
     flicker(ctx, t, 185, 62);
@@ -266,8 +266,8 @@ const patch = makeBackdrop(
     rect(ctx, PAL.k, 176, 113, 8, 8);
     rect(ctx, PAL.d, 177, 114, 6, 6);
   },
-  (ctx, t) => {
-    for (const f of fireflies) {
+  (ctx, t, dt, alive = 1) => {
+    for (const f of fireflies.slice(0, Math.round(fireflies.length * (0.25 + 0.75 * alive)))) {
       const on = Math.sin(t * 2 + f.p) > 0.2;
       if (!on) continue;
       const x = f.x + Math.sin(t * 0.7 + f.p) * 6;
@@ -318,7 +318,7 @@ const kitchen = makeBackdrop(
     }
     cobweb(ctx, 0, 0, 14, 1);
   },
-  (ctx, t, dt) => {
+  (ctx, t, dt, alive = 1) => {
     kitchenWin.live(ctx, t, dt);
     // bubbling brew + fire under the cauldron
     const pulse = 0.06 * Math.sin(t * 3);
@@ -378,7 +378,7 @@ const attic = makeBackdrop(
     cobweb(ctx, 0, 0, 18, 1);
     cobweb(ctx, 319, 0, 14, -1);
   },
-  (ctx, t, dt) => {
+  (ctx, t, dt, alive = 1) => {
     atticWin.live(ctx, t, dt);
     // swinging bulb
     const sw = Math.sin(t * 1.2) * 3;
@@ -420,9 +420,9 @@ const parlor = makeBackdrop(
     rect(ctx, PAL.v, 233, 105, 78, 3);
     cobweb(ctx, 319, 0, 16, -1);
   },
-  (ctx, t, dt) => {
+  (ctx, t, dt, alive = 1) => {
     parlorWin.live(ctx, t, dt);
-    drawFire(ctx, t, FIRE.x, FIRE.y, FIRE.w, FIRE.h);
+    drawFire(ctx, t, FIRE.x, FIRE.y, FIRE.w, FIRE.h, alive);
     // a shy ghost drifting near the ceiling
     const gx = 250 + Math.sin(t * 0.5) * 30;
     const gy = 22 + Math.sin(t * 1.3) * 3;
@@ -438,7 +438,7 @@ const parlor = makeBackdrop(
   }
 );
 
-export const BACKDROPS = { porch, patch, kitchen, attic, parlor };
+
 
 /** Little seasonal scene for the title-screen window. */
 export function windowScene() {
@@ -463,3 +463,81 @@ export function windowScene() {
     rect(ctx, PAL.D, bx + 3, r.y + 14 - flap, 2, 1);
   };
 }
+
+// ---------- bonus room: Moonlit Garden ----------
+const gardenLeaves = new Snow(0, 0, 320, 132, 30, 91, { colors: LEAF_COLORS, speed: 1.5 });
+const gardenFlies = Array.from({ length: 16 }, (_, i) => ({ x: (i * 41) % 320, y: 30 + ((i * 29) % 80), p: i * 1.3 }));
+export const garden = makeBackdrop(
+  (ctx) => {
+    nightSky(ctx, 0, 0, 320, 80);
+    moon(ctx, 160, 26, 16);
+    // hedges along the back
+    for (let x = 0; x < 320; x++) {
+      const h = 34 + Math.round(3 * Math.sin(x / 6) + 2 * Math.sin(x / 2.3));
+      rect(ctx, H.grassDark, x, 96 - h, 1, h);
+      if ((x * 13) % 7 === 0) rect(ctx, PAL.G, x, 96 - h + 3, 1, 2);
+    }
+    // lawn and stone path
+    rect(ctx, H.grass, 0, 96, 320, 36);
+    for (let y = 100; y < 132; y += 6) for (let x = (y * 3) % 13; x < 320; x += 13) rect(ctx, H.grassDark, x, y, 3, 1);
+    for (let i = 0; i < 6; i++) {
+      const w = 22 + i * 6;
+      rect(ctx, H.stone, 160 - w / 2, 108 + i * 4, w, 3);
+      rect(ctx, '#7c7690', 160 - w / 2, 108 + i * 4, w, 1);
+    }
+    // stone wall (left)
+    rect(ctx, PAL.k, 10, 86, 70, 24);
+    for (let r = 0; r < 4; r++) {
+      for (let x = 11 + (r % 2) * 6; x < 79; x += 12) {
+        rect(ctx, H.stone, x, 87 + r * 6, 11, 5);
+        rect(ctx, '#7c7690', x, 87 + r * 6, 11, 1);
+      }
+    }
+    // garden arch (center) with vines
+    rect(ctx, PAL.k, 126, 36, 68, 6);
+    rect(ctx, PAL.n, 127, 37, 66, 4);
+    for (const x of [128, 186]) {
+      rect(ctx, PAL.k, x - 1, 40, 8, 64);
+      rect(ctx, PAL.n, x, 40, 6, 64);
+      for (let y = 44; y < 100; y += 5) rect(ctx, PAL.g, x + ((y * 3) % 5), y, 2, 2);
+    }
+    for (let x = 128; x < 194; x += 4) rect(ctx, PAL.g, x, 41 + ((x * 7) % 3), 3, 2);
+    // bench under the arch
+    rect(ctx, PAL.k, 128, 103, 64, 5);
+    rect(ctx, PAL.n, 129, 104, 62, 3);
+    rect(ctx, PAL.N, 132, 107, 3, 8);
+    rect(ctx, PAL.N, 185, 107, 3, 8);
+    // lantern post (right)
+    rect(ctx, PAL.k, 263, 62, 6, 50);
+    rect(ctx, PAL.D, 264, 62, 4, 50);
+    rect(ctx, PAL.k, 246, 61, 42, 4);
+    rect(ctx, PAL.D, 247, 62, 40, 2);
+    // flower bed (right front)
+    rect(ctx, PAL.k, 230, 115, 64, 8);
+    rect(ctx, H.dirt, 231, 116, 62, 6);
+    for (let x = 233; x < 292; x += 5) rect(ctx, x % 2 ? PAL.v : PAL.a, x, 113, 2, 2);
+  },
+  (ctx, t, dt, alive = 1) => {
+    // the lantern on its post glows brighter as the garden wakes
+    const f = 0.15 + 0.25 * alive + 0.04 * Math.sin(t * 7);
+    ctx.globalAlpha = f;
+    rect(ctx, PAL.a, 254, 30, 24, 24);
+    ctx.globalAlpha = 1;
+    rect(ctx, PAL.k, 261, 36, 10, 14);
+    rect(ctx, alive > 0.2 ? PAL.y : PAL.A, 263, 38, 6, 10);
+    rect(ctx, PAL.k, 260, 34, 12, 2);
+    for (const fl of gardenFlies.slice(0, Math.round(gardenFlies.length * (0.2 + 0.8 * alive)))) {
+      if (Math.sin(t * 2 + fl.p) < 0.2) continue;
+      const x = fl.x + Math.sin(t * 0.7 + fl.p) * 6;
+      const y = fl.y + Math.cos(t * 0.9 + fl.p) * 4;
+      ctx.globalAlpha = 0.35;
+      rect(ctx, H.glow, x - 1, y - 1, 3, 3);
+      ctx.globalAlpha = 1;
+      rect(ctx, PAL.o, x, y, 1, 1);
+    }
+    gardenLeaves.update(dt, t);
+    gardenLeaves.draw(ctx);
+  }
+);
+
+export const BACKDROPS = { porch, patch, kitchen, attic, parlor, garden };

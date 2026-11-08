@@ -5,9 +5,10 @@ import { PAL, UI } from '../render/palette.js';
 import { drawPanel, drawText, rect } from '../render/draw.js';
 import { itemSprite, itemOutline, iconSprite } from '../render/sprites.js';
 import { makeBackdrop, drawWallpaper, drawFloor, drawRug, drawArmchair, drawCurtains, drawBookshelf } from '../render/scenery.js';
-import { ButtonSet, Button, addHud } from '../ui.js';
+import { ButtonSet, Button, addHud, drawBookIcon } from '../ui.js';
 import { drawTray, drawInfo, Particles } from './common.js';
-import { isThemeUnlocked, persist } from '../save.js';
+import { isThemeUnlocked, persist, resetProgress } from '../save.js';
+import { totalStars, maxThemeStars, themeStars } from '../rewards.js';
 import { defaultThemeId } from './levelSelect.js';
 import { TITLE_SONG } from '../songs.js';
 
@@ -29,7 +30,7 @@ const room = makeBackdrop((ctx) => {
   drawArmchair(ctx, 26, 72);
 });
 
-export function titleScene(game) {
+export function titleScene(game, { notice = null } = {}) {
   const themes = game.themes;
   const buttons = new ButtonSet();
   const particles = new Particles();
@@ -44,13 +45,42 @@ export function titleScene(game) {
 
   addHud(buttons, game);
   buttons.add({
-    x: 246, y: 146, w: 70, h: 28, label: 'Play', style: 'gold',
+    x: 246, y: 145, w: 70, h: 16, label: 'Play', style: 'gold',
     onClick: () => {
       game.audio.play('click');
       markSeen();
       game.go('levels', { themeId: defaultThemeId(game) });
     },
   });
+  buttons.add({
+    x: 246, y: 163, w: 40, h: 13, label: 'Album', tip: 'Keepsake album: every decoration you have tidied',
+    onClick: () => {
+      game.audio.play('click');
+      game.go('album', { themeId: defaultThemeId(game), from: 'title' });
+    },
+  });
+  buttons.add({
+    x: 288, y: 163, w: 28, h: 13, tip: 'Start over: erase stars, album and unlocks',
+    onClick: () => {
+      game.audio.play('click');
+      confirming = true;
+    },
+    draw: (ctx, x, y) => drawRestartIcon(ctx, x + 9, y + 2),
+  });
+
+  // "Restart" asks first; Keep playing is the safe default.
+  let confirming = false;
+  const confirmButtons = new ButtonSet();
+  confirmButtons.add({ x: 92, y: 106, w: 66, h: 16, label: 'Keep playing', style: 'gold', onClick: () => { game.audio.play('click'); confirming = false; } });
+  confirmButtons.add({
+    x: 164, y: 106, w: 66, h: 16, label: 'Erase progress', style: 'paper',
+    onClick: () => {
+      resetProgress(game.save);
+      game.audio.play('poof');
+      game.go('title', { notice: 'Fresh start! Every room is ready to tidy again.' });
+    },
+  });
+  const inConfirmCard = (p) => p.x >= 76 && p.x < 244 && p.y >= 48 && p.y < 130;
 
   // one storage box per holiday
   const totalW = themes.length * BOX_W + (themes.length - 1) * 10;
@@ -136,7 +166,7 @@ export function titleScene(game) {
         const d = th.levels.filter((l) => game.save.solved[l.id]).length;
         return open[i] ? `${th.name} ${d}/${th.levels.length}` : `${th.name} (locked)`;
       })
-      .join('  ·  ');
+      .join('  ·  ') + `  ·  ${totalStars(game.save, themes)} stars`;
 
   return {
     song: TITLE_SONG,
@@ -169,17 +199,57 @@ export function titleScene(game) {
 
       drawTray(ctx);
       if (hoverTip) drawInfo(ctx, hoverTip, PAL.o);
+      else if (notice && t < 6) drawInfo(ctx, notice, PAL.o);
       else if (fresh) drawInfo(ctx, `${fresh.name} unlocked! Open its box to start.`, PAL.o);
       else drawInfo(ctx, progress());
       drawText(ctx, 'Every holiday needs a tidy-up.', 122, 151, UI.paper, { align: 'center', size: 9 });
       drawText(ctx, 'Sort decorations by their tags. No timers, no fails.', 122, 164, UI.paperDark, { align: 'center', size: 7.5 });
       buttons.draw(ctx, t);
+      if (confirming) {
+        ctx.globalAlpha = 0.55;
+        rect(ctx, PAL.k, 0, 0, 320, 180);
+        ctx.globalAlpha = 1;
+        drawPanel(ctx, 76, 48, 168, 82);
+        rect(ctx, PAL.r, 77, 49, 166, 2);
+        drawText(ctx, 'Start over?', 160, 58, PAL.R, { title: 2, align: 'center' });
+        drawText(ctx, 'This erases your stars, album,', 160, 78, UI.ink, { align: 'center', size: 8 });
+        drawText(ctx, 'unlocked holidays and decorations.', 160, 88, UI.ink, { align: 'center', size: 8 });
+        drawText(ctx, 'Music and settings stay.', 160, 97, UI.inkSoft, { align: 'center', size: 7.5 });
+        confirmButtons.draw(ctx, t);
+      }
     },
     move(p) {
+      if (confirming) return confirmButtons.move(p);
       const b = buttons.move(p);
       hoverTip = b?.tip || '';
     },
-    down: (p) => buttons.down(p),
-    up: (p) => buttons.up(p),
+    down(p) {
+      if (confirming) {
+        if (!confirmButtons.down(p) && !inConfirmCard(p)) confirming = false; // click outside cancels
+        return;
+      }
+      buttons.down(p);
+    },
+    up(p) {
+      if (confirming) return confirmButtons.up(p);
+      buttons.up(p);
+    },
+    back() {
+      if (confirming) confirming = false; // Escape cancels
+    },
   };
+}
+
+function drawRestartIcon(ctx, x, y) {
+  // a little circular arrow
+  const c = UI.paper;
+  rect(ctx, c, x + 2, y, 4, 1);
+  rect(ctx, c, x + 1, y + 1, 1, 1);
+  rect(ctx, c, x, y + 2, 1, 4);
+  rect(ctx, c, x + 1, y + 6, 1, 1);
+  rect(ctx, c, x + 2, y + 7, 4, 1);
+  rect(ctx, c, x + 6, y + 6, 1, 1);
+  rect(ctx, c, x + 7, y + 3, 1, 3);
+  rect(ctx, c, x + 6, y + 1, 1, 1);
+  rect(ctx, c, x + 5, y + 2, 3, 1);
 }

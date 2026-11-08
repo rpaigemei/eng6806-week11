@@ -73,7 +73,11 @@ const PLATE_EDGE = '#8a6c58';
 // Soft light rim so black items stand out on dark rooms.
 const DARK_RIM = '#9a90b8';
 
-export function drawItem(ctx, item, x, y, { outline = null, lifted = false, plate = false } = {}) {
+/**
+ * Draw a decoration. `pop` (0..1) plays a squash-and-stretch landing; `plate`
+ * puts a felt coaster behind it (tray); black items get a light rim.
+ */
+export function drawItem(ctx, item, x, y, { outline = null, lifted = false, plate = false, pop = null } = {}) {
   x = Math.round(x);
   y = Math.round(y);
   if (lifted) {
@@ -86,6 +90,15 @@ export function drawItem(ctx, item, x, y, { outline = null, lifted = false, plat
     rect(ctx, PLATE_EDGE, x, y + 1, 16, 15);
     rect(ctx, PLATE_EDGE, x + 1, y, 14, 17);
     rect(ctx, PLATE, x + 1, y + 1, 14, 15);
+  }
+  if (pop !== null && pop < 1) {
+    // squash on landing, then spring back
+    const k = Math.sin(pop * Math.PI) * (1 - pop);
+    const w = Math.round(16 * (1 + 0.3 * k));
+    const h = Math.round(16 * (1 - 0.3 * k));
+    ctx.drawImage(itemSprite(item), x + 8 - w / 2, y + 16 - h, w, h);
+    if (view.colorAssist) ctx.drawImage(iconSprite(`swatch_${item.tags.color}`), x + 10, y + 10);
+    return;
   }
   if (!outline && item.tags.color === 'black') outline = DARK_RIM;
   if (outline) drawItemOutlined(ctx, item, x, y, outline);
@@ -110,9 +123,16 @@ export class Particles {
       this.list.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 15, life: 0.6 + Math.random() * 0.5, c: colors[i % colors.length], sparkle: i % 3 === 0 });
     }
   }
-  snowfall(n = 60) {
+  /** A little dust puff where something lands (same for every drop: no hints!). */
+  puff(x, y) {
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI + (i / 5) * Math.PI;
+      this.list.push({ x, y, vx: Math.cos(a) * 18, vy: Math.sin(a) * 6 - 4, life: 0.35, c: i % 2 ? UI.paperDark : PAL.W, snow: true });
+    }
+  }
+  snowfall(n = 60, colors = [PAL.w, PAL.c]) {
     for (let i = 0; i < n; i++) {
-      this.list.push({ x: Math.random() * 320, y: -Math.random() * 120, vx: (Math.random() - 0.5) * 8, vy: 18 + Math.random() * 20, life: 6, c: Math.random() < 0.5 ? PAL.w : PAL.c, snow: true });
+      this.list.push({ x: Math.random() * 320, y: -Math.random() * 120, vx: (Math.random() - 0.5) * 8, vy: 18 + Math.random() * 20, life: 6, c: colors[Math.floor(Math.random() * colors.length)], snow: true });
     }
   }
   update(dt) {
@@ -133,4 +153,46 @@ export class Particles {
       else rect(ctx, p.c, p.x, p.y, p.snow && p.c === PAL.w ? 2 : 1, p.snow && p.c === PAL.w ? 2 : 1);
     }
   }
+}
+
+/** Ice block over a pinned (pre-placed, unmovable) item. */
+export function drawIce(ctx, x, y, t) {
+  x = Math.round(x);
+  y = Math.round(y);
+  ctx.globalAlpha = 0.3;
+  rect(ctx, PAL.c, x - 1, y - 1, 18, 18);
+  ctx.globalAlpha = 0.85;
+  rect(ctx, PAL.c, x - 1, y - 1, 18, 1);
+  rect(ctx, PAL.c, x - 1, y + 16, 18, 1);
+  rect(ctx, PAL.c, x - 1, y - 1, 1, 18);
+  rect(ctx, PAL.c, x + 16, y - 1, 1, 18);
+  ctx.globalAlpha = 1;
+  // glints that slowly travel across the ice
+  const g = Math.floor((t * 6) % 24);
+  if (g < 14) {
+    rect(ctx, PAL.w, x + g, y + 1, 2, 1);
+    rect(ctx, PAL.w, x + g - 1, y + 2, 1, 1);
+  }
+  rect(ctx, PAL.w, x + 13, y + 12, 1, 3);
+  rect(ctx, PAL.w, x + 12, y + 13, 3, 1);
+}
+
+/** A red ribbon between two tied items (centers a, b), with a little bow. */
+export function drawRibbon(ctx, a, b, t) {
+  const steps = Math.max(6, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / 2));
+  // arch upward so the ribbon (and its bow) stay visible above the items
+  const sag = -(Math.min(9, 3 + Math.hypot(b.x - a.x, b.y - a.y) / 8) + Math.sin(t * 2) * 0.6);
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps;
+    const x = a.x + (b.x - a.x) * u;
+    const y = a.y + (b.y - a.y) * u + Math.sin(u * Math.PI) * sag;
+    rect(ctx, PAL.r, Math.round(x), Math.round(y), 1, 1);
+    if (i % 3 === 0) rect(ctx, PAL.R, Math.round(x), Math.round(y) + 1, 1, 1);
+  }
+  const mx = Math.round((a.x + b.x) / 2);
+  const my = Math.round((a.y + b.y) / 2 + sag);
+  rect(ctx, PAL.k, mx - 4, my - 2, 9, 5);
+  rect(ctx, PAL.r, mx - 3, my - 1, 3, 3);
+  rect(ctx, PAL.r, mx + 1, my - 1, 3, 3);
+  rect(ctx, PAL.R, mx, my - 1, 1, 3);
 }

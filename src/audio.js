@@ -6,6 +6,13 @@ const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
 import { TITLE_SONG } from './songs.js';
 
+/** Which little voice each kind of decoration uses (unknown kinds get a soft "tok"). */
+const CATEGORY_VOICE = {
+  bell: 'jingle', ornament: 'tink', star: 'twinkle', lights: 'tink', ribbon: 'rustle', gift: 'rustle',
+  stocking: 'rustle', candle: 'whoosh', lantern: 'whoosh', treat: 'tok', figure: 'tok', nature: 'tok',
+  pumpkin: 'thunk', critter: 'squeak', spooky: 'oooh', potion: 'bloop', candy: 'rustle', hat: 'whoosh',
+};
+
 export class Audio {
   constructor(save) {
     this.save = save;
@@ -66,10 +73,99 @@ export class Audio {
     this.tone(freq * 3, start, dur * 0.3, { vol: vol * 0.08, bus });
   }
 
-  play(name) {
+  /** Short filtered noise burst (rustles, whooshes, puffs). */
+  noise(start, dur, { vol = 0.15, freq = 2000, q = 0.8 } = {}) {
+    const c = this.ctx;
+    if (!this.noiseBuf) {
+      this.noiseBuf = c.createBuffer(1, c.sampleRate * 0.5, c.sampleRate);
+      const d = this.noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const src = c.createBufferSource();
+    src.buffer = this.noiseBuf;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = freq;
+    f.Q.value = q;
+    const g = c.createGain();
+    g.gain.setValueAtTime(vol, start);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    src.connect(f).connect(g).connect(this.sfxBus);
+    src.start(start);
+    src.stop(start + dur + 0.02);
+  }
+
+  /** Each kind of decoration has its own little voice when picked up / set down. */
+  itemSound(category, t, down) {
+    const k = down ? 1 : 1.25;
+    switch (CATEGORY_VOICE[category] || 'tok') {
+      case 'jingle':
+        this.bell(1568 * k, t, 0.25, 0.1, this.sfxBus);
+        this.bell(2093 * k, t + 0.05, 0.25, 0.08, this.sfxBus);
+        break;
+      case 'tink':
+        this.tone(1760 * k, t, 0.12, { vol: 0.12 });
+        break;
+      case 'twinkle':
+        this.bell(2349 * k, t, 0.2, 0.08, this.sfxBus);
+        this.bell(3136 * k, t + 0.07, 0.25, 0.06, this.sfxBus);
+        break;
+      case 'thunk':
+        this.tone(140 * k, t, 0.16, { type: 'sine', vol: 0.4, slideTo: 80 });
+        break;
+      case 'squeak':
+        this.tone(1300 * k, t, 0.08, { type: 'sine', vol: 0.12, slideTo: 1900 * k });
+        break;
+      case 'bloop':
+        this.tone(320 * k, t, 0.14, { type: 'sine', vol: 0.25, slideTo: 640 * k });
+        break;
+      case 'rustle':
+        this.noise(t, 0.12, { vol: 0.18, freq: 3500 });
+        break;
+      case 'whoosh':
+        this.noise(t, 0.2, { vol: 0.12, freq: 900, q: 0.5 });
+        break;
+      case 'oooh':
+        this.tone(420 * k, t, 0.3, { type: 'sine', vol: 0.12, slideTo: 300 * k, attack: 0.05 });
+        break;
+      default:
+        this.tone(330 * k, t, 0.12, { type: 'triangle', vol: 0.3, slideTo: 260 * k });
+    }
+  }
+
+  play(name, opt = {}) {
     if (!this.ctx || !this.save.sfx) return;
     const t = this.ctx.currentTime + 0.01;
     switch (name) {
+      case 'pickItem':
+        this.itemSound(opt.category, t, false);
+        break;
+      case 'placeItem':
+        this.itemSound(opt.category, t, true);
+        this.noise(t, 0.06, { vol: 0.06, freq: 600 });
+        break;
+      case 'settle': {
+        // a spot just filled up: the more spots are full, the higher the chime
+        const scale = [72, 74, 76, 79, 81, 84, 86];
+        this.bell(midi(scale[Math.min(scale.length - 1, opt.n || 0)]), t, 0.6, 0.12, this.sfxBus);
+        break;
+      }
+      case 'note': {
+        const scale = [72, 76, 79, 84, 88, 91, 96];
+        this.bell(midi(scale[Math.min(scale.length - 1, opt.i || 0)]), t, 0.9, 0.18, this.sfxBus);
+        break;
+      }
+      case 'star':
+        this.bell(midi(91), t, 0.5, 0.18, this.sfxBus);
+        this.bell(midi(96), t + 0.06, 0.6, 0.12, this.sfxBus);
+        break;
+      case 'frozen':
+        this.tone(2400, t, 0.05, { vol: 0.06 });
+        this.tone(1800, t + 0.04, 0.08, { vol: 0.05 });
+        break;
+      case 'poof':
+        this.noise(t, 0.35, { vol: 0.2, freq: 700, q: 0.4 });
+        break;
       case 'pick':
         this.tone(520, t, 0.08, { type: 'triangle', vol: 0.25, slideTo: 780 });
         break;

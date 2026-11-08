@@ -57,19 +57,22 @@ export const LEVELS = [
     ],
   },
   {
-    // SAME: big things can only use the tray or basket; the green gift can't
-    // join a same-color basket (it's the only green) so it takes the tray...
+    // Pinned items debut. The gold gift is frozen in the basket. The only bauble
+    // must take the "Min 1 bauble" box, so the white tray gets the star + snowman.
+    // The blue gift can't pair up on the same-color table or enter the "No blue"
+    // basket, so it joins the box; the reds pair up on the table.
     id: 'winter-4',
     title: 'Gift Table',
     backdrop: 'table',
     intro:
-      'New tag: "Same" means everything in the spot shares a color (or a kind). Count your colors and kinds: some groups are the only ones big enough.',
-    items: ['gift_red', 'bell_blue', 'star_red', 'ribbon_blue', 'candle_red', 'gift_green', 'bell_gold', 'ribbon_red', 'gift_blue'],
+      'New: ice! A frozen item is already in the right spot and can\'t move. Use it as a clue for what goes next to it.',
+    items: ['bell_red', 'star_white', 'gift_blue', 'snowman', 'gift_gold', 'ribbon_green', 'orn_white', 'star_red', 'bell_gold'],
+    pinned: { gift_gold: 'basket' },
     slots: [
-      { id: 'table', name: 'Table', x: 106, y: 50, capacity: 2, style: 'none', rules: [is('size', 'small')] },
-      { id: 'tray', name: 'Candle tray', x: 180, y: 50, capacity: 2, style: 'tray', rules: [countAtLeast('category', 'candle', 1)] },
-      { id: 'basket', name: 'Basket', x: 22, y: 94, capacity: 3, style: 'basket', rules: [allSame('color')] },
-      { id: 'box', name: 'Little box', x: 264, y: 94, capacity: 2, style: 'box', rules: [is('size', 'small'), allSame('category')] },
+      { id: 'table', name: 'Table', x: 106, y: 50, capacity: 2, style: 'none', rules: [R.allSame('color')] },
+      { id: 'tray', name: 'Silver tray', x: 180, y: 50, capacity: 2, style: 'tray', rules: [R.is('color', 'white')] },
+      { id: 'basket', name: 'Basket', x: 22, y: 94, capacity: 3, style: 'basket', rules: [R.not(R.is('color', 'blue'))] },
+      { id: 'box', name: 'Little box', x: 264, y: 94, capacity: 2, style: 'box', rules: [R.countAtLeast('category', 'ornament', 1)] },
     ],
   },
   {
@@ -90,3 +93,26 @@ export const LEVELS = [
     ],
   },
 ];
+
+/**
+ * Bonus room (unlocks with 12 Winter stars). Combines everything: Same, No,
+ * Big, Apart + Max, a frozen berry star and a ribbon-tied candle and gift.
+ */
+export const BONUS = {
+  id: 'winter-bonus',
+  title: 'Frosty Porch',
+  backdrop: 'frostyPorch',
+  cover: 'snowman',
+  intro:
+    'Bonus room! Every trick at once: frozen things, ribbons, and the hardest tags. Count, ask "what if?", and take your time.',
+  items: ['ribbon_green', 'stocking_red', 'candle_red', 'gift_green', 'bell_red', 'lights_red', 'lights_warm', 'orn_white', 'snowman', 'bell_blue', 'bell_gold', 'star_white', 'star_red', 'gift_red'],
+  pinned: { star_red: 'hooks' },
+  pairs: [['candle_red', 'gift_green']],
+  slots: [
+    { id: 'box', name: 'Window box', x: 28, y: 46, capacity: 3, style: 'none', rules: [R.allSame('color')] },
+    { id: 'bench', name: 'Bench', x: 24, y: 79, capacity: 3, style: 'none', rules: [R.allSame('color'), R.not(R.is('category', 'ornament'))], tag: { x: 50, y: 108, align: 'center' } },
+    { id: 'rail', name: 'Railing', x: 238, y: 63, capacity: 3, style: 'none', rules: [R.allSame('category')] },
+    { id: 'hooks', name: 'Door hooks', x: 143, y: 52, capacity: 2, style: 'hooks', rules: [R.is('size', 'big')] },
+    { id: 'steps', name: 'Steps', x: 134, y: 106, capacity: 3, style: 'none', rules: [R.noAdjacent('color'), R.countAtMost('category', 'bell', 1)], tag: { x: 190, y: 109, align: 'left' } },
+  ],
+};

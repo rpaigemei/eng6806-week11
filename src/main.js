@@ -8,10 +8,11 @@ import { titleScene } from './scenes/title.js';
 import { levelSelectScene } from './scenes/levelSelect.js';
 import { puzzleScene } from './scenes/puzzle.js';
 import { decorateScene } from './scenes/decorate.js';
+import { albumScene } from './scenes/album.js';
 
 const W = 320;
 const H = 180;
-const SCENES = { title: titleScene, levels: levelSelectScene, puzzle: puzzleScene, decorate: decorateScene };
+const SCENES = { title: titleScene, levels: levelSelectScene, puzzle: puzzleScene, decorate: decorateScene, album: albumScene };
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');

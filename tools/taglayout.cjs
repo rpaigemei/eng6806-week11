@@ -21,9 +21,9 @@ server.listen(0, async () => {
   await page.goto(`http://localhost:${server.address().port}/index.html`);
   await page.waitForTimeout(800);
   const report = await page.evaluate(async () => {
-    const { THEMES } = await import('/src/themes/index.js');
+    const { THEMES, allLevels } = await import('/src/themes/index.js');
     const { tagLayoutProblems } = await import('/src/render/tags.js');
-    return THEMES.flatMap((th) => th.levels.map((l) => ({ id: l.id, problems: tagLayoutProblems(l, th) })));
+    return THEMES.flatMap((th) => allLevels(th).map((l) => ({ id: l.id, problems: tagLayoutProblems(l, th) })));
   });
   await browser.close();
   server.close();
