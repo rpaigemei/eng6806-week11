@@ -1,6 +1,7 @@
 import { CATALOG, VOCAB, iconFor } from './catalog.js';
 import { LEVELS } from './levels.js';
-import { BACKDROPS } from './backdrops.js';
+import { BACKDROPS, windowScene } from './backdrops.js';
+import { WINTER_SONG } from '../../songs.js';
 
 export const WINTER = {
   id: 'winter',
@@ -11,5 +12,9 @@ export const WINTER = {
   iconFor,
   levels: LEVELS,
   backdrops: BACKDROPS,
-  titleBackdrop: 'tree',
+  selectBackdrop: 'mantel',
+  song: WINTER_SONG,
+  windowScene: windowScene(),
+  // storage box on the title-screen shelf
+  box: { label: 'Winter', peek: 'orn_red', tint: '#c9925e', ribbon: '#d64550' },
 };

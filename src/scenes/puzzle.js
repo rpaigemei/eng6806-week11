@@ -6,7 +6,7 @@ import { drawTag, tagRect } from '../render/tags.js';
 import { ButtonSet, addHud } from '../ui.js';
 import { describe } from '../engine/rules.js';
 import { createState, moveItem, locate, getSlot, check, hint, resetState, cellPos, PITCH } from '../engine/level.js';
-import { findLevel } from '../themes/index.js';
+import { findLevel, roomNumber, THEMES } from '../themes/index.js';
 import { persist } from '../save.js';
 import { TRAY_Y, pilePos, drawTray, drawInfo, Glide, drawItem, itemInfo, Particles } from './common.js';
 
@@ -14,7 +14,10 @@ const inRect = (p, r, pad = 0) => p.x >= r.x - pad && p.x < r.x + r.w + pad && p
 
 export function puzzleScene(game, { levelId }) {
   const { theme, level, index } = findLevel(levelId);
-  const next = theme.levels[index + 1] || null;
+  // next room: the following one in this holiday, or the first room of the next holiday
+  const nextTheme = THEMES[THEMES.indexOf(theme) + 1] || null;
+  const next = theme.levels[index + 1] || nextTheme?.levels[0] || null;
+  const nextIsNewHoliday = !theme.levels[index + 1] && !!next;
   const state = createState(level, theme.catalog);
   const backdrop = theme.backdrops[level.backdrop];
   const glide = new Glide();
@@ -56,7 +59,11 @@ export function puzzleScene(game, { levelId }) {
     overlayButtons.list = [];
     const bw = 62;
     const list = [];
-    if (next) list.push({ label: 'Next room', style: 'gold', onClick: () => game.go('puzzle', { levelId: next.id }) });
+    if (next && nextIsNewHoliday && THEMES.slice(0, THEMES.indexOf(nextTheme)).every((th) => th.levels.every((l) => game.save.solved[l.id]))) {
+      list.push({ label: `${nextTheme.name}!`, style: 'gold', onClick: () => game.go('levels', { themeId: nextTheme.id }) });
+    } else if (next && !nextIsNewHoliday) {
+      list.push({ label: 'Next room', style: 'gold', onClick: () => game.go('puzzle', { levelId: next.id }) });
+    }
     list.push({ label: 'Decorate', style: 'paper', onClick: () => game.go('decorate', { levelId: level.id }) });
     list.push({ label: 'Rooms', style: 'paper', onClick: () => game.go('levels', { themeId: theme.id }) });
     const total = list.length * bw + (list.length - 1) * 6;
@@ -108,6 +115,10 @@ export function puzzleScene(game, { levelId }) {
     if (!drag) return null;
     const c = { x: drag.x + 8, y: drag.y + 8 };
     if (c.y >= TRAY_Y + 4) return { pile: true };
+    // A drop right on a spot's cells always goes there; padded zones only
+    // help when the item lands near, but not on, a spot.
+    const direct = state.slots.find((s) => inRect(c, { x: s.x, y: s.y, w: slotWidth(s), h: 16 }));
+    if (direct) return { slot: direct };
     let best = null;
     let bestD = Infinity;
     for (const s of state.slots) {
@@ -195,7 +206,7 @@ export function puzzleScene(game, { levelId }) {
     game.save.solved[level.id] = true;
     persist(game.save);
     game.audio.play('solve');
-    say(next ? 'All tidy! The next room is unlocked.' : 'All tidy! Every room is done.', UI.good);
+    say(nextIsNewHoliday ? `All tidy! ${theme.name} is complete.` : next ? 'All tidy! The next room is unlocked.' : 'All tidy! Every room is done.', UI.good);
     for (const s of state.slots) {
       s.items.forEach((id, i) => {
         const p = cellPos(s, i);
@@ -245,6 +256,7 @@ export function puzzleScene(game, { levelId }) {
 
   // ---------- scene interface ----------
   return {
+    song: theme.song,
     update(dt) {
       t += dt;
       for (const k of Object.keys(wiggle)) if ((wiggle[k] -= dt) <= 0) delete wiggle[k];
@@ -386,7 +398,7 @@ export function puzzleScene(game, { levelId }) {
       drawPanel(ctx, 50, top, 220, h);
       rect(ctx, PAL.g, 51, top + 1, 218, 2);
       overlayButtons.list[0].y = top + h - 21;
-      drawText(ctx, `Room ${index + 1}`, 160, top + 7, UI.inkSoft, { align: 'center', size: 8, bold: true });
+      drawText(ctx, `Room ${roomNumber(level.id)}`, 160, top + 7, UI.inkSoft, { align: 'center', size: 8, bold: true });
       drawText(ctx, level.title, 160, top + 17, PAL.R, { title: 2, align: 'center' });
       lines.forEach((line, i) => drawText(ctx, line, 160, top + 34 + i * 10, UI.ink, { align: 'center', size: 8.5 }));
     } else if (overlay === 'complete') {
@@ -394,7 +406,7 @@ export function puzzleScene(game, { levelId }) {
       rect(ctx, PAL.y, 57, 41, 206, 2);
       drawText(ctx, 'All tidy!', 160, 52, PAL.R, { title: 3, align: 'center', shadow: PAL.p });
       drawText(ctx, `${level.title} looks lovely.`, 160, 74, UI.ink, { align: 'center', size: 9 });
-      drawText(ctx, next ? `Next up: ${next.title}` : 'You tidied every room. Thank you!', 160, 86, UI.inkSoft, { align: 'center', size: 8 });
+      drawText(ctx, nextIsNewHoliday ? `${theme.name} is all tidy! ${nextTheme.name} is open.` : next ? `Next up: ${next.title}` : 'You tidied every room. Thank you!', 160, 86, UI.inkSoft, { align: 'center', size: 8 });
     }
     overlayButtons.draw(ctx, t);
   }

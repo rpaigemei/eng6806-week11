@@ -20,6 +20,15 @@ export const PAL = {
   t: '#e3a878', // tan
   s: '#b4b9cc', // silver
   S: '#6b7090', // slate
+  a: '#e8823a', // pumpkin orange
+  A: '#a84e1f', // burnt orange
+  e: '#ffc08a', // orange shine
+  v: '#7b4fa0', // plum purple
+  V: '#4a2e66', // deep purple
+  u: '#b48ad6', // lilac
+  d: '#3a3448', // charcoal
+  D: '#221d2e', // ink black
+  i: '#ece6d2', // bone
 };
 
 export const UI = {
