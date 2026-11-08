@@ -1,4 +1,4 @@
-// Pixel text, panels and small drawing helpers.
+// Text, panels and small drawing helpers.
 import { GLYPHS } from './font.js';
 import { UI, PAL } from './palette.js';
 
@@ -26,19 +26,60 @@ export function rect(ctx, color, x, y, w, h) {
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
 }
 
-export function textWidth(str, scale = 1) {
-  return str.length ? (str.length * 4 - 1) * scale : 0;
+// ---------- text ----------
+// Two faces: the tiny original pixel font for big decorative titles, and
+// Atkinson Hyperlegible (bundled, OFL) for everything people need to read.
+// Sizes are in logical game pixels; the canvas is drawn at full device
+// resolution, so readable text stays smooth while pixel art stays crisp.
+
+const READ_FAMILY = '"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif';
+export const TAG_TEXT = { size: 7, bold: true };
+
+const fontOf = (size, bold) => `${bold ? 700 : 400} ${size}px ${READ_FAMILY}`;
+let measureCtx = null;
+const clean = (str) => String(str).replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
+
+/** Width of a string in logical pixels. */
+export function textWidth(str, { pixel = false, scale = 1, size = 8, bold = false } = {}) {
+  str = clean(str);
+  if (pixel) return str.length ? (str.length * 4 - 1) * scale : 0;
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+  measureCtx.font = fontOf(size, bold);
+  return measureCtx.measureText(str).width;
 }
 
-/** Draw pixel text. align: 'left' | 'center' | 'right'. */
-export function drawText(ctx, str, x, y, color = UI.ink, { scale = 1, align = 'left', shadow = null } = {}) {
-  str = String(str).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').toUpperCase();
+/**
+ * Draw text. Readable text is vertically centered where a 5px pixel glyph
+ * starting at `y` would be. align: 'left' | 'center' | 'right'. Returns width.
+ */
+export function drawText(ctx, str, x, y, color = UI.ink, opts = {}) {
+  const { pixel = false, scale = 1, size = 8, bold = false, align = 'left', shadow = null } = opts;
+  str = clean(str);
+  if (pixel) return drawPixelText(ctx, str.toUpperCase(), x, y, color, { scale, align, shadow });
+  const w = textWidth(str, { size, bold });
+  let sx = x;
+  if (align === 'center') sx = x - w / 2;
+  else if (align === 'right') sx = x - w;
+  ctx.font = fontOf(size, bold);
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  const cy = y + 2.5;
+  if (shadow) {
+    ctx.fillStyle = shadow;
+    ctx.fillText(str, sx + 0.5, cy + 0.5);
+  }
+  ctx.fillStyle = color;
+  ctx.fillText(str, sx, cy);
+  return w;
+}
+
+function drawPixelText(ctx, str, x, y, color, { scale, align, shadow }) {
   let sx = Math.round(x);
-  const w = textWidth(str, scale);
+  const w = textWidth(str, { pixel: true, scale });
   if (align === 'center') sx = Math.round(x - w / 2);
   else if (align === 'right') sx = Math.round(x - w);
   const sy = Math.round(y);
-  if (shadow) drawText(ctx, str, sx + 1, sy + 1, shadow, { scale });
+  if (shadow) drawPixelText(ctx, str, sx + 1, sy + 1, shadow, { scale, align: 'left' });
   for (let i = 0; i < str.length; i++) {
     const ch = str[i];
     if (ch === ' ') continue;
@@ -48,13 +89,13 @@ export function drawText(ctx, str, x, y, color = UI.ink, { scale = 1, align = 'l
 }
 
 /** Greedy word wrap to a pixel width. */
-export function wrapText(str, maxWidth, scale = 1) {
-  const words = String(str).split(/\s+/);
+export function wrapText(str, maxWidth, opts = {}) {
+  const words = clean(str).split(/\s+/);
   const lines = [];
   let line = '';
   for (const word of words) {
     const test = line ? `${line} ${word}` : word;
-    if (textWidth(test, scale) <= maxWidth || !line) line = test;
+    if (textWidth(test, opts) <= maxWidth || !line) line = test;
     else {
       lines.push(line);
       line = word;
@@ -62,6 +103,17 @@ export function wrapText(str, maxWidth, scale = 1) {
   }
   if (line) lines.push(line);
   return lines;
+}
+
+/** One line that fits: shrink a little, then trim with an ellipsis. Returns { text, size }. */
+export function fitText(str, maxWidth, { size = 8, minSize = 7, bold = false } = {}) {
+  str = clean(str);
+  for (let s = size; s >= minSize; s -= 0.5) {
+    if (textWidth(str, { size: s, bold }) <= maxWidth) return { text: str, size: s };
+  }
+  let t = str;
+  while (t.length > 1 && textWidth(`${t}\u2026`, { size: minSize, bold }) > maxWidth) t = t.slice(0, -1);
+  return { text: `${t.trimEnd()}\u2026`, size: minSize };
 }
 
 /** A pixel panel with clipped corners. */

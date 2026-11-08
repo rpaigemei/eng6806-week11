@@ -1,6 +1,6 @@
 // Helpers shared by the puzzle and decorate scenes.
 import { PAL, UI } from '../render/palette.js';
-import { rect, drawText, hash, drawSparkle } from '../render/draw.js';
+import { rect, drawText, fitText, hash, drawSparkle } from '../render/draw.js';
 import { itemSprite, drawItemOutlined } from '../render/sprites.js';
 
 export const TRAY_Y = 132;
@@ -32,14 +32,15 @@ export function drawTray(ctx) {
     for (let x = (y * 7) % 50; x < 320; x += 50) rect(ctx, UI.trayDark, x, y - 8, 1, 8);
   }
   // info strip
-  rect(ctx, UI.trayDark, 0, TRAY_Y + 2, 320, 9);
+  rect(ctx, UI.trayDark, 0, TRAY_Y + 1, 320, 12);
   // pile mat
   rect(ctx, '#3e271d', 3, TRAY_Y + 13, PILE_W, 33);
   rect(ctx, PAL.k, 3, TRAY_Y + 13, PILE_W, 1);
 }
 
 export function drawInfo(ctx, text, color = UI.paper) {
-  drawText(ctx, text, 5, TRAY_Y + 4, color);
+  const fit = fitText(text, 310, { size: 8.5 });
+  drawText(ctx, fit.text, 5, TRAY_Y + 4, color, { size: fit.size });
 }
 
 /** Smoothly glides each item's drawn position toward its logical spot. */

@@ -1,15 +1,15 @@
 // Slot tags: each rule becomes a little paper chip of icons, so rules read at a glance.
 import { PAL, UI } from './palette.js';
-import { drawPanel, drawText, textWidth } from './draw.js';
+import { drawPanel, drawText, textWidth, TAG_TEXT } from './draw.js';
 import { iconSprite } from './sprites.js';
 import { slotWidth } from './scenery.js';
 
-const CHIP_H = 11;
+const CHIP_H = 12;
 
 /** Which attribute a group rule talks about: a color palette icon, or a word. */
 function attrPart(attr) {
   if (attr === 'color') return { kind: 'icon', spec: { icon: 'palette' } };
-  return { kind: 'text', s: attr === 'category' ? 'KIND' : attr.toUpperCase() };
+  return { kind: 'text', s: attr === 'category' ? 'kind' : attr };
 }
 
 function rawParts(rule) {
@@ -22,21 +22,21 @@ function rawParts(rule) {
         { kind: 'icon', attr: rule.attr, value: v },
       ]);
     case 'not':
-      return [{ kind: 'text', s: 'NO' }, ...rawParts(rule.rule)];
+      return [{ kind: 'text', s: 'No' }, ...rawParts(rule.rule)];
     case 'all':
       return rule.rules.flatMap(rawParts);
     case 'any':
       return rule.rules.flatMap((r, i) => [...(i ? [{ kind: 'text', s: '/' }] : []), ...rawParts(r)]);
     case 'countAtMost':
-      return [{ kind: 'text', s: `MAX ${rule.n}` }, { kind: 'icon', attr: rule.attr, value: rule.value }];
+      return [{ kind: 'text', s: `Max ${rule.n}` }, { kind: 'icon', attr: rule.attr, value: rule.value }];
     case 'countAtLeast':
-      return [{ kind: 'text', s: `MIN ${rule.n}` }, { kind: 'icon', attr: rule.attr, value: rule.value }];
+      return [{ kind: 'text', s: `Min ${rule.n}` }, { kind: 'icon', attr: rule.attr, value: rule.value }];
     case 'allDifferent':
-      return [{ kind: 'text', s: 'MIXED' }, attrPart(rule.attr)];
+      return [{ kind: 'text', s: 'Mixed' }, attrPart(rule.attr)];
     case 'allSame':
-      return [{ kind: 'text', s: 'SAME' }, attrPart(rule.attr)];
+      return [{ kind: 'text', s: 'Same' }, attrPart(rule.attr)];
     case 'noAdjacent':
-      return [{ kind: 'text', s: 'APART' }, attrPart(rule.attr)];
+      return [{ kind: 'text', s: 'Apart' }, attrPart(rule.attr)];
     default:
       return [{ kind: 'text', s: '?' }];
   }
@@ -59,7 +59,7 @@ function parts(rule, theme) {
   return out;
 }
 
-const partW = (p) => (p.kind === 'icon' ? 7 : textWidth(p.s));
+const partW = (p) => (p.kind === 'icon' ? 7 : Math.ceil(textWidth(p.s, TAG_TEXT)));
 
 function chipWidth(rule, theme) {
   const ps = parts(rule, theme);
@@ -100,9 +100,9 @@ export function drawTag(ctx, slot, theme, t, { flash = null, hot = false } = {})
     let px = x + 2;
     for (const p of parts(rule, theme)) {
       if (p.kind === 'icon') {
-        ctx.drawImage(iconSprite(p.spec.icon, p.spec.colors), px, r.y + 2);
+        ctx.drawImage(iconSprite(p.spec.icon, p.spec.colors), px, r.y + 2.5 | 0);
       } else {
-        drawText(ctx, p.s, px, r.y + 3, p.s === 'NO' ? PAL.R : UI.ink);
+        drawText(ctx, p.s, px, r.y + 3.5, p.s === 'No' ? PAL.R : UI.ink, TAG_TEXT);
       }
       px += partW(p) + 1;
     }

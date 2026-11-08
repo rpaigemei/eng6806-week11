@@ -15,7 +15,8 @@ A cozy pixel-art sorting puzzle for the web. The holiday decorations got jumbled
 - **Decorate mode** opens once a room is solved, so you can place things anywhere
 - **Progress, music and sound settings are saved** in your browser (`localStorage` only, nothing is sent anywhere)
 - Works with a **mouse or touch**, with crisp pixel scaling on phones
-- All art, the font and the music are drawn or generated in code. There are no external assets or libraries.
+- Pixel art with **easy-to-read text**: clues, tags and descriptions use [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/), a font designed for legibility. Big titles keep the pixel font.
+- All art, the pixel title font and the music are drawn or generated in code. There are no external libraries, CDNs or trackers.
 
 ## Play locally
 
@@ -63,6 +64,7 @@ This prints each level's number of solutions (aim for 1), plus three difficulty 
 
 ```
 index.html               canvas + boot
+assets/fonts/            bundled reading font (OFL)
 src/main.js              scaling, input, scene switching, game loop
 src/engine/              rules.js (rule predicates + text), level.js (state, solver, hints)
 src/render/              palette, sprite grids, pixel font, scenery pieces, slot tags
@@ -89,4 +91,5 @@ The tests then check automatically that the new levels have exactly one solution
 
 ## License
 
-MIT. See [LICENSE](LICENSE). This is an original game: all code, art and music in this repository were made for it.
+- **Code, art and music:** MIT. See [LICENSE](LICENSE). This is an original game: all code, art and music in this repository were made for it.
+- **Reading font:** Atkinson Hyperlegible, © 2020 Braille Institute of America, Inc., used under the SIL Open Font License 1.1. The font files and their license are bundled in [`assets/fonts/`](assets/fonts/) (see [`OFL.txt`](assets/fonts/OFL.txt)).

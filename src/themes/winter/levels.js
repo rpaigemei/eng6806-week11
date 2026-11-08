@@ -15,7 +15,7 @@ export const LEVELS = [
     title: 'Storage Boxes',
     backdrop: 'attic',
     intro:
-      'Drag each decoration into a box whose tag it matches. Some things fit two boxes, but only one way fits everything. Press DONE when the pile is empty.',
+      'Drag each decoration into a box whose tag it matches. Some things fit two boxes, but only one way fits everything. Press Done when the pile is empty.',
     items: ['orn_red', 'lights_warm', 'ribbon_red', 'orn_blue', 'bell_red', 'lights_red'],
     slots: [
       { id: 'box_orn', name: 'Bauble box', x: 50, y: 90, capacity: 2, style: 'box', rules: [is('category', 'ornament')] },
@@ -30,7 +30,7 @@ export const LEVELS = [
     title: 'Trim the Tree',
     backdrop: 'tree',
     intro:
-      'New tag: MIXED. No two things in that row may share a color (or a kind). Each placement tells you something about the next one.',
+      'New tag: "Mixed" means no two things in that row may share a color (or a kind). Each placement tells you something about the next one.',
     items: ['ribbon_green', 'star_gold', 'bell_red', 'orn_white', 'lights_blue', 'ribbon_red', 'orn_green', 'bell_blue', 'ribbon_gold'],
     slots: [
       { id: 'top', name: 'Top branches', x: 143, y: 26, capacity: 2, style: 'branch', rules: [is('color', 'blue')], tag: { x: 200, y: 29, align: 'left' } },
@@ -45,7 +45,7 @@ export const LEVELS = [
     title: 'The Mantel',
     backdrop: 'mantel',
     intro:
-      'New tags: MIN 1 means the spot needs at least one of that. NO means none allowed. Look for the thing that only one spot can use.',
+      'New tags: "Min 1" means the spot needs at least one of that. "No" means none allowed. Look for the thing that only one spot can use.',
     items: ['snowman', 'stocking_red', 'bell_gold', 'orn_white', 'candle_green', 'pinecone', 'star_gold', 'stocking_green'],
     slots: [
       { id: 'mantel_l', name: 'Mantel, left', x: 104, y: 34, capacity: 2, style: 'none', rules: [countAtLeast('color', 'green', 1), countAtLeast('category', 'star', 1)] },
@@ -61,7 +61,7 @@ export const LEVELS = [
     title: 'Gift Table',
     backdrop: 'table',
     intro:
-      'New tag: SAME means everything in the spot shares a color (or a kind). Count your colors and kinds: some groups are the only ones big enough.',
+      'New tag: "Same" means everything in the spot shares a color (or a kind). Count your colors and kinds: some groups are the only ones big enough.',
     items: ['gift_red', 'bell_blue', 'star_red', 'ribbon_blue', 'candle_red', 'gift_green', 'bell_gold', 'ribbon_red', 'gift_blue'],
     slots: [
       { id: 'table', name: 'Table', x: 106, y: 50, capacity: 2, style: 'none', rules: [is('size', 'small')] },
@@ -78,7 +78,7 @@ export const LEVELS = [
     title: 'The Grand Tree',
     backdrop: 'bigtree',
     intro:
-      'New tags: APART means side-by-side things can\'t share a color, so drag within a row to rearrange. MAX 1 means at most one. Stuck? Ask "what if?" and see what breaks.',
+      'New tags: "Apart" means side-by-side things can\'t share a color, so drag within a row to rearrange. "Max 1" means at most one. Stuck? Ask "what if?" and see what breaks.',
     items: ['orn_red', 'star_white', 'bell_gold', 'lights_red', 'orn_blue', 'ribbon_gold', 'star_gold', 'orn_white', 'bell_red', 'orn_gold', 'lights_blue', 'star_red'],
     slots: [
       { id: 'treetop', name: 'Treetop', x: 152, y: 2, capacity: 1, style: 'none', rules: [is('category', 'star')], tag: { x: 176, y: 5, align: 'left' } },

@@ -32,7 +32,7 @@ export function levelSelectScene(game, { themeId } = {}) {
       },
       draw: (ctx, bx, by, btn, t) => {
         const on = unlocked();
-        drawText(ctx, String(i + 1), bx + CARD_W / 2, by + 5, on ? PAL.R : UI.inkSoft, { scale: 2, align: 'center' });
+        drawText(ctx, String(i + 1), bx + CARD_W / 2, by + 5, on ? PAL.R : UI.inkSoft, { pixel: true, scale: 2, align: 'center' });
         const preview = theme.catalog[level.items[0]];
         if (on) {
           const bob = btn.hover ? Math.round(Math.sin(t * 6)) : 0;
@@ -40,15 +40,15 @@ export function levelSelectScene(game, { themeId } = {}) {
         } else {
           ctx.drawImage(iconSprite('lock'), bx + CARD_W / 2 - 4, by + 24);
         }
-        wrapText(level.title, CARD_W - 6).forEach((line, li) =>
-          drawText(ctx, line, bx + CARD_W / 2, by + 42 + li * 7, on ? UI.ink : UI.inkSoft, { align: 'center' })
+        wrapText(level.title, CARD_W - 6, { size: 8, bold: true }).forEach((line, li) =>
+          drawText(ctx, line, bx + CARD_W / 2, by + 42 + li * 9, on ? UI.ink : UI.inkSoft, { align: 'center', size: 8, bold: true })
         );
         if (solved()) ctx.drawImage(iconSprite('bigStar'), bx + CARD_W - 10, by + 3);
       },
     });
     buttons.add(card);
     buttons.add({
-      x, y: 100, w: CARD_W, h: 13, label: 'DECORATE', style: 'wood',
+      x, y: 100, w: CARD_W, h: 13, label: 'Decorate', style: 'wood',
       visible: solved, tip: `Decorate ${level.title} freely`,
       onClick: () => {
         game.audio.play('click');
@@ -66,17 +66,17 @@ export function levelSelectScene(game, { themeId } = {}) {
       ctx.globalAlpha = 0.55;
       rect(ctx, PAL.k, 0, 0, 320, 132);
       ctx.globalAlpha = 1;
-      drawText(ctx, theme.name, 160, 8, UI.paper, { scale: 2, align: 'center', shadow: PAL.k });
+      drawText(ctx, theme.name, 160, 8, UI.paper, { pixel: true, scale: 2, align: 'center', shadow: PAL.k });
       buttons.draw(ctx, t);
 
       drawTray(ctx);
       drawInfo(ctx, hoverInfo || 'Pick a room to tidy.');
-      drawText(ctx, `${done()} / ${theme.levels.length} rooms tidy`, 160, 152, UI.paper, { align: 'center' });
+      drawText(ctx, `${done()} / ${theme.levels.length} rooms tidy`, 160, 151, UI.paper, { align: 'center', size: 9, bold: true });
       const allDone = done() === theme.levels.length;
       drawText(
         ctx,
         allDone ? 'Every room is tidy! Decorate them, or wait for more holidays.' : 'More holidays are on the way.',
-        160, 163, UI.paperDark, { align: 'center' }
+        160, 164, UI.paperDark, { align: 'center', size: 8 }
       );
     },
     move(p) {

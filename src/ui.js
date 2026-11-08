@@ -43,7 +43,7 @@ export class Button {
     if (this.customDraw) this.customDraw(ctx, this.x, y, this, t);
     if (this.label) {
       const color = this.style === 'wood' ? (on ? UI.paper : UI.inkSoft) : on ? UI.ink : UI.inkSoft;
-      drawText(ctx, this.label, this.x + this.w / 2, y + Math.round(this.h / 2) - 2, color, { align: 'center' });
+      drawText(ctx, this.label, this.x + this.w / 2, y + this.h / 2 - 3, color, { align: 'center', bold: true, size: this.h >= 15 ? 8.5 : 8 });
     }
   }
 }
