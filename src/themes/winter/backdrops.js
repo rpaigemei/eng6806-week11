@@ -56,7 +56,7 @@ const attic = makeBackdrop(
     rect(ctx, PAL.S, 213, 95, 8, 11);
     rect(ctx, PAL.o, 215, 98, 4, 6);
   },
-  (ctx, t, dt) => {
+  (ctx, t, dt, alive = 1) => {
     atticWin.live(ctx, t, dt);
     // a lone bulb hanging from the rafters
     rect(ctx, PAL.k, 200, 5, 1, 16);
@@ -79,9 +79,9 @@ const tree = makeBackdrop(
     drawTree(ctx, 160, 8, 100);
     drawPresentsPile(ctx, 196, 100);
   },
-  (ctx, t, dt) => {
+  (ctx, t, dt, alive = 1) => {
     treeWin.live(ctx, t, dt);
-    drawStringLights(ctx, t);
+    drawStringLights(ctx, t, 0, 320, 3, 4, alive);
   }
 );
 
@@ -99,10 +99,10 @@ const mantel = makeBackdrop(
     drawMantel(ctx, 88, 50, 144);
     drawArmchair(ctx, 22, 72);
   },
-  (ctx, t, dt) => {
+  (ctx, t, dt, alive = 1) => {
     mantelWin.live(ctx, t, dt);
-    drawFire(ctx, t, FIRE.x, FIRE.y, FIRE.w, FIRE.h);
-    drawStringLights(ctx, t, 84, 236, 14, 5);
+    drawFire(ctx, t, FIRE.x, FIRE.y, FIRE.w, FIRE.h, alive);
+    drawStringLights(ctx, t, 84, 236, 14, 5, alive);
   }
 );
 
@@ -122,9 +122,9 @@ const table = makeBackdrop(
       rect(ctx, PAL.y, 235 + dx, 89 + dy, 1, 1);
     }
   },
-  (ctx, t, dt) => {
+  (ctx, t, dt, alive = 1) => {
     tableWin.live(ctx, t, dt);
-    drawStringLights(ctx, t);
+    drawStringLights(ctx, t, 0, 320, 3, 4, alive);
   }
 );
 
@@ -140,13 +140,13 @@ const bigtree = makeBackdrop(
     drawPresentsPile(ctx, 198, 100);
     drawPresentsPile(ctx, 92, 102);
   },
-  (ctx, t, dt) => {
+  (ctx, t, dt, alive = 1) => {
     bigWin.live(ctx, t, dt);
-    drawStringLights(ctx, t);
+    drawStringLights(ctx, t, 0, 320, 3, 4, alive);
   }
 );
 
-export const BACKDROPS = { attic, tree, mantel, table, bigtree };
+
 
 /** Little seasonal scene for the title-screen window: snowy night. */
 export function windowScene() {
@@ -169,3 +169,82 @@ export function windowScene() {
     snow.draw(ctx);
   };
 }
+
+// ---------- bonus room: Frosty Porch (outside, snowing) ----------
+const frostySnow = new Snow(0, 0, 320, 132, 70, 81);
+export const frostyPorch = makeBackdrop(
+  (ctx) => {
+    // night sky
+    rect(ctx, UI.night, 0, 0, 320, 30);
+    for (let i = 0; i < 30; i++) rect(ctx, i % 4 ? PAL.c : PAL.w, (i * 53) % 320, (i * 17) % 24, 1, 1);
+    rect(ctx, PAL.o, 288, 6, 7, 7);
+    rect(ctx, UI.night, 291, 6, 4, 4);
+    // house siding
+    rect(ctx, '#5a6a8a', 0, 22, 320, 86);
+    for (let y = 26; y < 108; y += 5) rect(ctx, '#4a5878', 0, y, 320, 1);
+    // snowy roof edge with icicles
+    rect(ctx, PAL.k, 0, 20, 320, 4);
+    rect(ctx, PAL.w, 0, 18, 320, 3);
+    for (let x = 4; x < 320; x += 9) {
+      const len = 3 + ((x * 7) % 6);
+      for (let i = 0; i < len; i++) rect(ctx, i < len - 1 ? PAL.c : PAL.w, x, 24 + i, i < len - 2 ? 2 : 1, 1);
+    }
+    // warm window (left) with a flower box underneath
+    rect(ctx, PAL.k, 22, 18 + 8, 62, 38);
+    rect(ctx, PAL.n, 23, 27, 60, 36);
+    rect(ctx, '#f7d38a', 26, 30, 54, 30);
+    rect(ctx, '#e8b968', 26, 46, 54, 14);
+    rect(ctx, PAL.N, 52, 30, 2, 30);
+    rect(ctx, PAL.N, 26, 44, 54, 2);
+    rect(ctx, PAL.r, 26, 30, 8, 30);
+    rect(ctx, PAL.r, 72, 30, 8, 30);
+    rect(ctx, PAL.k, 22, 62, 62, 7);
+    rect(ctx, PAL.N, 23, 63, 60, 5);
+    rect(ctx, PAL.w, 23, 62, 60, 2);
+    // front door with wreath (hooks hold the decorations)
+    rect(ctx, PAL.k, 139, 30, 42, 76);
+    rect(ctx, PAL.R, 141, 32, 38, 74);
+    rect(ctx, PAL.r, 145, 36, 14, 30);
+    rect(ctx, PAL.r, 161, 36, 14, 30);
+    rect(ctx, PAL.r, 145, 72, 30, 28);
+    rect(ctx, PAL.y, 172, 74, 3, 3);
+    // porch deck with snowy edge
+    rect(ctx, PAL.N, 0, 104, 320, 28);
+    for (let y = 109; y < 132; y += 6) rect(ctx, PAL.k, 0, y, 320, 1);
+    rect(ctx, PAL.w, 0, 104, 320, 2);
+    for (let x = 0; x < 320; x += 17) rect(ctx, PAL.c, x, 106, 8, 1);
+    // bench (left)
+    rect(ctx, PAL.k, 18, 95, 76, 5);
+    rect(ctx, PAL.n, 19, 96, 74, 3);
+    rect(ctx, PAL.w, 19, 95, 74, 1);
+    rect(ctx, PAL.N, 24, 99, 3, 6);
+    rect(ctx, PAL.N, 85, 99, 3, 6);
+    // steps
+    rect(ctx, PAL.k, 124, 120, 72, 12);
+    rect(ctx, PAL.n, 125, 121, 70, 4);
+    rect(ctx, PAL.w, 125, 121, 70, 1);
+    rect(ctx, PAL.N, 125, 125, 70, 7);
+    // railing (right) with snow caps
+    rect(ctx, PAL.k, 230, 79, 90, 4);
+    rect(ctx, PAL.i, 230, 80, 90, 2);
+    rect(ctx, PAL.w, 230, 78, 90, 2);
+    for (let x = 234; x < 320; x += 8) {
+      rect(ctx, PAL.k, x, 82, 3, 22);
+      rect(ctx, PAL.i, x, 82, 2, 22);
+    }
+  },
+  (ctx, t, dt, alive = 1) => {
+    // lights along the roof switch on as the porch wakes up
+    drawStringLights(ctx, t, 0, 320, 23, 3, alive);
+    // wreath on the door
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * Math.PI * 2;
+      rect(ctx, i % 4 ? PAL.g : PAL.G, 159 + Math.round(Math.cos(a) * 7), 44 + Math.round(Math.sin(a) * 7), 2, 2);
+    }
+    rect(ctx, PAL.r, 157, 50, 5, 3);
+    frostySnow.update(dt, t);
+    frostySnow.draw(ctx);
+  }
+);
+
+export const BACKDROPS = { attic, tree, mantel, table, bigtree, frostyPorch };

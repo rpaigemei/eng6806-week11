@@ -7,7 +7,12 @@ import { HALLOWEEN } from './halloween/theme.js';
 
 export const THEMES = [WINTER, HALLOWEEN];
 
-/** Rooms are numbered straight through all holidays: Winter 1-5, Halloween 6-10. */
+/** A holiday's main rooms plus its bonus room (if it has one). */
+export function allLevels(theme) {
+  return theme.bonus ? [...theme.levels, theme.bonus] : theme.levels;
+}
+
+/** Rooms are numbered straight through all holidays (Winter 1-5, Halloween 6-10). Bonus rooms return null. */
 export function roomNumber(levelId) {
   let n = 0;
   for (const theme of THEMES) {
@@ -15,13 +20,14 @@ export function roomNumber(levelId) {
     if (i >= 0) return n + i + 1;
     n += theme.levels.length;
   }
-  return 0;
+  return null;
 }
 
 export function findLevel(levelId) {
   for (const theme of THEMES) {
     const index = theme.levels.findIndex((l) => l.id === levelId);
-    if (index >= 0) return { theme, level: theme.levels[index], index };
+    if (index >= 0) return { theme, level: theme.levels[index], index, isBonus: false };
+    if (theme.bonus?.id === levelId) return { theme, level: theme.bonus, index: theme.levels.length, isBonus: true };
   }
   return null;
 }

@@ -5,7 +5,7 @@ import { isThemeUnlocked } from '../src/save.js';
 import { TEMPLATES, ICONS, COLORWAYS, COLOR_SYMBOLS } from '../src/render/spriteData.js';
 import { PAL } from '../src/render/palette.js';
 import {
-  createState, moveItem, check, hint, solve, validateLevel, locate, slotRect, levelStats,
+  createState, moveItem, check, hint, solve, validateLevel, locate, slotRect, levelStats, countSolutions, isPinned,
 } from '../src/engine/level.js';
 
 /** Apply one hint the way a player would. */
@@ -20,6 +20,7 @@ function scramble(state, seed) {
   let s = seed;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   for (const id of [...state.level.items].sort(() => rnd() - 0.5)) {
+    if (isPinned(state, id)) continue; // frozen items never move
     const open = state.slots.filter((x) => x.items.length < x.capacity);
     moveItem(state, id, open[Math.floor(rnd() * open.length)].id);
   }
@@ -70,6 +71,25 @@ for (const theme of THEMES) {
       }
     });
 
+    test(`${level.id}: tied items start side by side in the pile`, () => {
+      for (const [a, b] of level.pairs || []) {
+        const i = level.items.indexOf(a);
+        const j = level.items.indexOf(b);
+        assert.ok(Math.abs(i - j) === 1 && Math.min(i, j) % 2 === 0, `${a}/${b} should share a pile column`);
+      }
+    });
+
+    test(`${level.id}: every pin and tied pair matters`, () => {
+      for (const id of Object.keys(level.pinned || {})) {
+        const { [id]: _, ...rest } = level.pinned;
+        assert.ok(countSolutions({ ...level, pinned: rest }, theme.catalog, 3) > 1, `pin ${id} is not needed`);
+      }
+      (level.pairs || []).forEach((pair, i) => {
+        const pairs = level.pairs.filter((_, j) => j !== i);
+        assert.ok(countSolutions({ ...level, pairs }, theme.catalog, 3) > 1, `pair ${pair} is not needed`);
+      });
+    });
+
     test(`${level.id}: exactly one solution, solvable by reasoning alone`, () => {
       const st = levelStats(level, theme.catalog);
       assert.equal(st.solutions, 1);
@@ -107,6 +127,15 @@ for (const theme of THEMES) {
     for (let i = 1; i < d.length; i++) assert.ok(d[i] >= d[i - 1], `${theme.levels[i].id}: ${d.join(' -> ')}`);
   });
 }
+
+test('every decoration has a short album story', () => {
+  for (const theme of THEMES) {
+    for (const it of Object.values(theme.catalog)) {
+      assert.ok(typeof it.story === 'string' && it.story.length > 10, `${it.id} has no story`);
+      assert.ok(it.story.length <= 56, `${it.id} story is too long for the info bar`);
+    }
+  }
+});
 
 test('every color used anywhere has a symbol swatch', () => {
   for (const theme of THEMES) {

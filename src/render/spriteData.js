@@ -556,6 +556,7 @@ export const ICONS = {
   cat_potion: ['.1...1.', '...1...', 'kkkkkkk', 'k11111k', 'k11111k', '.k111k.', '.kk.kk.'],
   cat_candy: ['.......', 'k.kkk.k', 'kk111kk', 'kk111kk', 'k.kkk.k', '.......', '.......'],
   cat_hat: ['....k..', '...k1k.', '...k1k.', '..k111k', '..k111k', 'kkkkkkk', '.......'],
+  starSlot: ['...k...', '..kWk..', 'kkkWkkk', 'kWWWWWk', '.kWWWk.', '.kWkWk.', '.kk.kk.'],
   palette: ['.kkkkk.', 'krrkyyk', 'krrkyyk', 'kkkkkkk', 'kbbkggk', 'kbbkggk', '.kkkkk.'],
   lock: ['..kkk..', '.k...k.', '.k...k.', 'kkkkkkk', 'kyyyyyk', 'kyykyyk', 'kkkkkkk'],
   bigStar: ['...k...', '..kyk..', 'kkkyykk', 'kyyyyyk', '.kyyyk.', '.kykyk.', '.kk.kk.'],

@@ -2,11 +2,49 @@
 // `colors` maps the template's placeholder digits to palette keys.
 import { COLORWAYS as C } from '../../render/spriteData.js';
 
+/** Keepsake-album stories, one short line per decoration. */
+export const STORIES = {
+  orn_red: "Grandma's favorite. Always hung first, always up front.",
+  orn_gold: 'Slightly dented from the year the cat discovered it.',
+  orn_blue: 'Bought on a snowy trip to the coast, years ago.',
+  orn_green: 'Painted by little hands. The glitter never fell off.',
+  orn_white: 'Pale as fresh snow. Glows when the fire is low.',
+  bell_gold: 'Rung every Christmas Eve to call everyone to cocoa.',
+  bell_red: 'Its jingle sounds a little like a laugh.',
+  bell_blue: 'Found at a flea market, still in its tiny box.',
+  star_gold: 'The treetop star. Someone always argues for the angel.',
+  star_red: 'A paper star folded on a quiet winter afternoon.',
+  star_white: 'Made of salt dough. It smells faintly of cinnamon.',
+  lights_warm: 'Warm white. Takes an hour to untangle every year.',
+  lights_blue: 'Icy blue lights for the window, like frost at night.',
+  lights_red: 'One bulb blinks out of rhythm. Nobody will fix it.',
+  ribbon_red: 'Tied on the front door wreath since forever.',
+  ribbon_green: 'Saved from a gift so lovely nobody wanted to toss it.',
+  ribbon_gold: 'Curled with scissors, the way Dad taught everyone.',
+  ribbon_blue: 'A velvet bow from a wedding, now a holiday regular.',
+  stocking_red: 'Name stitched on in wobbly letters. Still the best.',
+  stocking_green: 'Always seems to end up with the most oranges.',
+  stocking_blue: 'Knitted over three winters. Worth the wait.',
+  candle_white: 'Lit on the longest night for good luck.',
+  candle_red: 'Smells like cranberries. Sort of.',
+  candle_green: 'A pine-scented stub nobody has the heart to replace.',
+  snowman: 'Carved from wood, with a scarf knitted to match.',
+  soldier: 'Guards the mantel. Has never once blinked.',
+  cane: 'Too pretty to eat. Probably. Maybe tomorrow.',
+  ginger: 'Missing a button. The first bite is still a mystery.',
+  pinecone: 'Picked up on a walk and painted with a dab of snow.',
+  gift_red: 'Shaken gently by everyone. Nobody has guessed it.',
+  gift_blue: "Wrapped in last year's paper. Nobody noticed.",
+  gift_green: 'Suspiciously sock-shaped.',
+  gift_gold: 'The fanciest bow in the house. Hands off till morning.',
+};
+
 const item = (id, name, tpl, colors, category, color, size) => ({
   id,
   name,
   tpl,
   colors,
+  story: STORIES[id],
   tags: { category, color, size },
 });
 

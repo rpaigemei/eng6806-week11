@@ -149,6 +149,8 @@ export function describe(rule, vocab = {}) {
       return `at most ${rule.n} ${word(vocab, rule.value, rule.n !== 1)}`;
     case 'countAtLeast':
       return `at least ${rule.n} ${word(vocab, rule.value, rule.n !== 1)}`;
+    case 'together':
+      return 'tied items must share a spot';
     case 'allDifferent':
       return `all different ${attrWord(rule.attr, true)}`;
     case 'allSame':

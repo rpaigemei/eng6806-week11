@@ -57,19 +57,22 @@ export const LEVELS = [
     ],
   },
   {
-    // SAME: big things can only use the tray or basket; the green gift can't
-    // join a same-color basket (it's the only green) so it takes the tray...
+    // Pinned items debut. The gold gift is frozen in the basket. The only bauble
+    // must take the "Min 1 bauble" box, so the white tray gets the star + snowman.
+    // The blue gift can't pair up on the same-color table or enter the "No blue"
+    // basket, so it joins the box; the reds pair up on the table.
     id: 'winter-4',
     title: 'Gift Table',
     backdrop: 'table',
     intro:
-      'New tag: "Same" means everything in the spot shares a color (or a kind). Count your colors and kinds: some groups are the only ones big enough.',
-    items: ['gift_red', 'bell_blue', 'star_red', 'ribbon_blue', 'candle_red', 'gift_green', 'bell_gold', 'ribbon_red', 'gift_blue'],
+      'New: ice! A frozen item is already in the right spot and can\'t move. Use it as a clue for what goes next to it.',
+    items: ['bell_red', 'star_white', 'gift_blue', 'snowman', 'gift_gold', 'ribbon_green', 'orn_white', 'star_red', 'bell_gold'],
+    pinned: { gift_gold: 'basket' },
     slots: [
-      { id: 'table', name: 'Table', x: 106, y: 50, capacity: 2, style: 'none', rules: [is('size', 'small')] },
-      { id: 'tray', name: 'Candle tray', x: 180, y: 50, capacity: 2, style: 'tray', rules: [countAtLeast('category', 'candle', 1)] },
-      { id: 'basket', name: 'Basket', x: 22, y: 94, capacity: 3, style: 'basket', rules: [allSame('color')] },
-      { id: 'box', name: 'Little box', x: 264, y: 94, capacity: 2, style: 'box', rules: [is('size', 'small'), allSame('category')] },
+      { id: 'table', name: 'Table', x: 106, y: 50, capacity: 2, style: 'none', rules: [R.allSame('color')] },
+      { id: 'tray', name: 'Silver tray', x: 180, y: 50, capacity: 2, style: 'tray', rules: [R.is('color', 'white')] },
+      { id: 'basket', name: 'Basket', x: 22, y: 94, capacity: 3, style: 'basket', rules: [R.not(R.is('color', 'blue'))] },
+      { id: 'box', name: 'Little box', x: 264, y: 94, capacity: 2, style: 'box', rules: [R.countAtLeast('category', 'ornament', 1)] },
     ],
   },
   {

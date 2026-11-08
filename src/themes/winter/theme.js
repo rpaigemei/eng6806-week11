@@ -1,3 +1,4 @@
+import { PAL } from '../../render/palette.js';
 import { CATALOG, VOCAB, iconFor } from './catalog.js';
 import { LEVELS } from './levels.js';
 import { BACKDROPS, windowScene } from './backdrops.js';
@@ -13,6 +14,8 @@ export const WINTER = {
   levels: LEVELS,
   backdrops: BACKDROPS,
   selectBackdrop: 'mantel',
+  // finale confetti
+  confetti: [PAL.w, PAL.c, PAL.y],
   song: WINTER_SONG,
   windowScene: windowScene(),
   // storage box on the title-screen shelf

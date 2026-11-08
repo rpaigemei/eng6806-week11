@@ -45,7 +45,8 @@ export class Snow {
 export function makeBackdrop(drawStatic, drawLive) {
   let cache = null;
   return {
-    draw(ctx, t, dt) {
+    /** opts.alive (0..1): how awake the room is; live layers scale their lights/fire with it. */
+    draw(ctx, t, dt, opts = {}) {
       if (!cache) {
         cache = document.createElement('canvas');
         cache.width = 320;
@@ -53,7 +54,7 @@ export function makeBackdrop(drawStatic, drawLive) {
         drawStatic(cache.getContext('2d'));
       }
       ctx.drawImage(cache, 0, 0);
-      if (drawLive) drawLive(ctx, t, dt);
+      if (drawLive) drawLive(ctx, t, dt, opts.alive ?? 1);
     },
   };
 }
@@ -169,7 +170,7 @@ export function drawCurtains(ctx, x, y, w, h) {
 const BULBS = [PAL.r, PAL.y, PAL.g, PAL.b];
 
 /** A sagging string of lights that slowly twinkles. */
-export function drawStringLights(ctx, t, x0 = 0, x1 = 320, y = 3, sag = 4) {
+export function drawStringLights(ctx, t, x0 = 0, x1 = 320, y = 3, sag = 4, lit = 1) {
   const span = 40;
   let i = 0;
   for (let x = x0; x < x1; x++) {
@@ -178,7 +179,9 @@ export function drawStringLights(ctx, t, x0 = 0, x1 = 320, y = 3, sag = 4) {
     rect(ctx, PAL.G, x, yy, 1, 1);
     if ((x - x0) % 10 === 5) {
       const color = BULBS[i % 4];
-      const on = Math.sin(t * 2 + i * 1.3) > -0.4;
+      // bulbs switch on one by one as the room wakes up
+      const awake = (i * 7) % 32 < lit * 32;
+      const on = awake && Math.sin(t * 2 + i * 1.3) > -0.4;
       ctx.globalAlpha = on ? 0.35 : 0;
       rect(ctx, color, x - 2, yy, 5, 5);
       ctx.globalAlpha = 1;
@@ -287,7 +290,7 @@ export function drawFireplace(ctx, x, y, w, h) {
   rect(ctx, PAL.t, ox + ow - 13, oy + oh - 6, 2, 2);
 }
 
-export function drawFire(ctx, t, x, y, w, h) {
+export function drawFire(ctx, t, x, y, w, h, power = 1) {
   const ox = x + 28;
   const ow = w - 56;
   const base = y + h - 7;
@@ -299,7 +302,7 @@ export function drawFire(ctx, t, x, y, w, h) {
   ctx.globalAlpha = 1;
   for (let i = 0; i < 8; i++) {
     const fx = ox + 12 + i * ((ow - 26) / 7);
-    const fh = 8 + Math.round(5 * Math.abs(Math.sin(t * 5.3 + i * 1.7)) + 3 * Math.sin(t * 11 + i * 2.3));
+    const fh = Math.max(2, Math.round((0.35 + 0.65 * power) * (8 + 5 * Math.abs(Math.sin(t * 5.3 + i * 1.7)) + 3 * Math.sin(t * 11 + i * 2.3))));
     rect(ctx, PAL.R, fx - 2, base - fh, 5, fh);
     rect(ctx, PAL.r, fx - 1, base - fh + 2, 4, fh - 2);
     rect(ctx, PAL.y, fx, base - fh + 5, 2, Math.max(1, fh - 5));

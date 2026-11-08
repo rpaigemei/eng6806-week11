@@ -4,11 +4,13 @@ import { itemSprite, iconSprite } from '../render/sprites.js';
 import { ButtonSet, Button, addHud } from '../ui.js';
 import { drawTray, drawInfo } from './common.js';
 import { isUnlocked, isThemeUnlocked, persist } from '../save.js';
-import { roomNumber } from '../themes/index.js';
+import { roomNumber, allLevels } from '../themes/index.js';
+import { levelStars, themeStars, maxThemeStars, isBonusUnlocked, BONUS_STARS } from '../rewards.js';
+import { drawBookIcon } from '../ui.js';
 
-const CARD_W = 54;
-const CARD_H = 68;
-const GAP = 8;
+const CARD_W = 46;
+const CARD_H = 70;
+const GAP = 5;
 const TAB_W = 72;
 
 /** The holiday to open on: last played if still sensible, else the first unfinished open one. */
@@ -26,7 +28,8 @@ export function levelSelectScene(game, { themeId } = {}) {
   const prevTheme = game.themes[themeIndex - 1];
   const backdrop = theme.backdrops[theme.selectBackdrop];
   const buttons = new ButtonSet();
-  const n = theme.levels.length;
+  const cards = allLevels(theme);
+  const n = cards.length;
   const x0 = Math.round((320 - (n * CARD_W + (n - 1) * GAP)) / 2);
   let hoverInfo = '';
 
@@ -36,6 +39,14 @@ export function levelSelectScene(game, { themeId } = {}) {
   }
 
   addHud(buttons, game, { back: () => game.go('title') });
+  buttons.add({
+    x: 17, y: 2, w: 13, h: 12, tip: 'Keepsake album: every decoration you have tidied',
+    onClick: () => {
+      game.audio.play('click');
+      game.go('album', { themeId: theme.id, from: 'levels' });
+    },
+    draw: (ctx, x, y) => drawBookIcon(ctx, x + 2, y + 2),
+  });
 
   // holiday tabs
   const tabsX = Math.round((320 - game.themes.length * TAB_W - (game.themes.length - 1) * 4) / 2);
@@ -58,20 +69,28 @@ export function levelSelectScene(game, { themeId } = {}) {
     });
   });
 
-  theme.levels.forEach((level, i) => {
+  cards.forEach((level, i) => {
     const x = x0 + i * (CARD_W + GAP);
-    const unlocked = () => themeOpen && isUnlocked(game.save, theme, i);
+    const bonus = level === theme.bonus;
+    const unlocked = () => themeOpen && (bonus ? isBonusUnlocked(game.save, theme) : isUnlocked(game.save, theme, i));
     const solved = () => !!game.save.solved[level.id];
     const card = new Button({
       x, y: 28, w: CARD_W, h: CARD_H, style: 'paper', enabled: unlocked,
-      tip: level.title,
+      tip: bonus && !isBonusUnlocked(game.save, theme) ? `Bonus room - earn ${BONUS_STARS} stars in ${theme.name} to open it` : level.title,
       onClick: () => {
         game.audio.play('click');
         game.go('puzzle', { levelId: level.id });
       },
       draw: (ctx, bx, by, btn, t) => {
         const on = unlocked();
-        drawText(ctx, String(roomNumber(level.id)), bx + CARD_W / 2, by + 5, on ? PAL.R : UI.inkSoft, { title: 2, align: 'center' });
+        if (bonus) {
+          // gold trim for the bonus room
+          rect(ctx, PAL.y, bx + 1, by + 1, CARD_W - 2, 2);
+          rect(ctx, PAL.Y, bx + 1, by + CARD_H - 3, CARD_W - 2, 1);
+          drawText(ctx, 'Bonus', bx + CARD_W / 2, by + 6, on ? PAL.Y : UI.inkSoft, { align: 'center', size: 9 });
+        } else {
+          drawText(ctx, String(roomNumber(level.id)), bx + CARD_W / 2, by + 5, on ? PAL.R : UI.inkSoft, { title: 2, align: 'center' });
+        }
         const preview = theme.catalog[level.cover || level.items[0]];
         if (on) {
           const bob = btn.hover ? Math.round(Math.sin(t * 6)) : 0;
@@ -79,15 +98,18 @@ export function levelSelectScene(game, { themeId } = {}) {
         } else {
           ctx.drawImage(iconSprite('lock'), bx + CARD_W / 2 - 4, by + 24);
         }
-        wrapText(level.title, CARD_W - 6, { size: 8 }).forEach((line, li) =>
-          drawText(ctx, line, bx + CARD_W / 2, by + 42 + li * 9, on ? UI.ink : UI.inkSoft, { align: 'center', size: 8 })
+        if (bonus && !on) drawText(ctx, `${BONUS_STARS} stars`, bx + CARD_W / 2, by + 34, UI.inkSoft, { align: 'center', size: 7 });
+        wrapText(level.title, CARD_W - 4, { size: 7.5 }).forEach((line, li) =>
+          drawText(ctx, line, bx + CARD_W / 2, by + 41 + li * 8, on ? UI.ink : UI.inkSoft, { align: 'center', size: 7.5 })
         );
-        if (solved()) ctx.drawImage(iconSprite('bigStar'), bx + CARD_W - 10, by + 3);
+        // three star pips: earned stars in gold
+        const got = levelStars(game.save, level.id);
+        for (let k = 0; k < 3; k++) ctx.drawImage(iconSprite(k < got ? 'bigStar' : 'starSlot'), bx + CARD_W / 2 - 12 + k * 9, by + CARD_H - 11);
       },
     });
     buttons.add(card);
     buttons.add({
-      x, y: 100, w: CARD_W, h: 13, label: 'Decorate', style: 'wood',
+      x, y: 102, w: CARD_W, h: 13, label: 'Decorate', style: 'wood',
       visible: solved, tip: `Decorate ${level.title} freely`,
       onClick: () => {
         game.audio.play('click');
@@ -111,12 +133,13 @@ export function levelSelectScene(game, { themeId } = {}) {
 
       drawTray(ctx);
       drawInfo(ctx, hoverInfo || (themeOpen ? 'Pick a room to tidy.' : `Tidy every ${prevTheme.name} room to open ${theme.name}.`));
-      drawText(ctx, `${theme.name}: ${done()} / ${theme.levels.length} rooms tidy`, 160, 151, UI.paper, { align: 'center', size: 9 });
+      drawText(ctx, `${theme.name}: ${done()} / ${theme.levels.length} rooms tidy  \u00b7  ${themeStars(game.save, theme)} / ${maxThemeStars(theme)} stars`, 122, 151, UI.paper, { align: 'center', size: 9 });
       const allDone = done() === theme.levels.length;
       let line = theme.tagline;
       if (!themeOpen) line = 'Locked for now. Finish the holiday before it!';
       else if (allDone) line = nextLocked ? `All tidy! ${game.themes[themeIndex + 1].name} is open.` : 'Every room is tidy! More holidays are on the way.';
-      drawText(ctx, line, 160, 164, UI.paperDark, { align: 'center', size: 8 });
+      if (themeOpen && theme.bonus && !isBonusUnlocked(game.save, theme)) line = `Earn ${BONUS_STARS} stars here to open the bonus room.`;
+      drawText(ctx, line, 122, 164, UI.paperDark, { align: 'center', size: 8 });
     },
     move(p) {
       const b = buttons.move(p);

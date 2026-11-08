@@ -24,21 +24,24 @@ export const LEVELS = [
     ],
   },
   {
-    // Three greens fill the vines. The candy can't sit with a pumpkin in a
-    // same-size spot (no small pumpkins here), so it goes to the wheelbarrow,
-    // which must then be all orange. The white pumpkin anchors the hay bale.
+    // Tied pairs debut. Critters fill the hay bale. Big things must use the fence
+    // or the vines; Mixed vines take at most one white, so the fence is the three
+    // whites. The mini pumpkin can't join the vines, because its tied green
+    // partner would have to come too.
     id: 'halloween-2',
     title: 'Pumpkin Patch',
     backdrop: 'patch',
     cover: 'pumpkin_orange',
     intro:
-      'Count before you place. Which colors come in exactly the right number? And could a small candy ever share a spot with a big pumpkin?',
-    items: ['spider_black', 'pumpkin_orange', 'potion_green', 'ghost', 'candle_black', 'candy_orange', 'hat_green', 'cat', 'pumpkin_white', 'candle_orange', 'spider_green', 'bat_black'],
+      'New: ribbons! Two tied things must share a spot. If one of them can\'t go somewhere, neither can the other.',
+    // tied items sit side by side in the pile so their ribbon is easy to see
+    items: ['spider_black', 'ghost', 'pumpkin_mini', 'pumpkin_green', 'hat_green', 'candy_green', 'bat_purple', 'potion_orange', 'pumpkin_white', 'cauldron', 'candle_bone', 'spider_green'],
+    pairs: [['pumpkin_mini', 'pumpkin_green']],
     slots: [
-      { id: 'vines', name: 'Vine patch', x: 24, y: 96, capacity: 3, style: 'none', rules: [is('color', 'green')] },
-      { id: 'hay', name: 'Hay bale', x: 100, y: 74, capacity: 3, style: 'none', rules: [countAtLeast('category', 'pumpkin', 1), allSame('size')] },
-      { id: 'barrow', name: 'Wheelbarrow', x: 180, y: 88, capacity: 3, style: 'none', rules: [allSame('color')] },
-      { id: 'fence', name: 'Fence', x: 252, y: 50, capacity: 3, style: 'none', rules: [not(is('category', 'candy'))] },
+      { id: 'vines', name: 'Vine patch', x: 24, y: 96, capacity: 3, style: 'none', rules: [R.allDifferent('color')] },
+      { id: 'hay', name: 'Hay bale', x: 100, y: 74, capacity: 3, style: 'none', rules: [R.is('category', 'critter')] },
+      { id: 'barrow', name: 'Wheelbarrow', x: 180, y: 88, capacity: 3, style: 'none', rules: [R.is('size', 'small')] },
+      { id: 'fence', name: 'Fence', x: 252, y: 50, capacity: 3, style: 'none', rules: [R.allSame('color')] },
     ],
   },
   {

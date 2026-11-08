@@ -120,6 +120,14 @@ export function drawSpeakerIcon(ctx, x, y, on) {
   }
 }
 
+export function drawBookIcon(ctx, x, y) {
+  rect(ctx, PAL.R, x, y, 9, 8);
+  rect(ctx, PAL.r, x + 1, y + 1, 7, 6);
+  rect(ctx, UI.paper, x + 1, y + 6, 7, 1);
+  rect(ctx, PAL.y, x + 4, y + 2, 1, 3);
+  rect(ctx, PAL.y, x + 3, y + 3, 3, 1);
+}
+
 export function drawBackIcon(ctx, x, y) {
   for (let i = 0; i < 4; i++) {
     rect(ctx, UI.paper, x + 2 + i, y + 4 - i, 1, 1);

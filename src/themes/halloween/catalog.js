@@ -2,11 +2,43 @@
 // template in render/spriteData.js, `colors` recolors its placeholder digits.
 import { COLORWAYS as C } from '../../render/spriteData.js';
 
+/** Keepsake-album stories, one short line per decoration. */
+export const STORIES = {
+  pumpkin_orange: 'Grown in the garden. Won second prize at the fair.',
+  pumpkin_white: 'A ghost pumpkin, pale as the moon it grew under.',
+  pumpkin_green: 'A bumpy little gourd that refuses to turn orange.',
+  pumpkin_mini: 'Small enough to fit in a pocket. Often does.',
+  pumpkin_purple: 'A plum-colored gourd. The neighbors keep asking.',
+  lantern_orange: 'Its old iron door creaks a cheerful hello.',
+  candle_orange: 'Smells like pumpkin pie, which is the whole point.',
+  candle_purple: 'Melts into tiny purple puddles shaped like bats.',
+  candle_black: 'Looks spooky, smells like vanilla. A softie.',
+  candle_bone: 'Tall and pale. Lit for the first trick-or-treater.',
+  bat_black: 'A felt bat that hangs upside down by choice.',
+  bat_purple: 'Flaps when the door opens. Startles everyone, still.',
+  spider_black: 'Eight legs, two googly eyes, zero bad intentions.',
+  spider_green: 'Lives in the fake web all year. Very loyal.',
+  cat: 'Sat on the porch one October and never left.',
+  ghost: 'Made from an old pillowcase. Says boo very politely.',
+  skull: 'A sugar skull, painted with tiny flowers.',
+  potion_green: "Labeled 'Frog Fizz'. It's lime soda.",
+  potion_purple: 'Grape juice in a fancy bottle. Shh.',
+  potion_orange: 'Smells of orange peel and a little mischief.',
+  cauldron: 'Holds candy, soup, or a fog machine. Never all three.',
+  candy_orange: 'The last orange candy always ends up here.',
+  candy_purple: 'Grape flavor. Fought over every single year.',
+  candy_green: 'Sour apple. Brave trick-or-treaters only.',
+  hat_purple: 'Belonged to a great-aunt with a great laugh.',
+  hat_black: 'A proper witch hat. The brim has seen things.',
+  hat_green: 'Homemade, slightly lopsided, totally perfect.',
+};
+
 const item = (id, name, tpl, colors, category, color, size) => ({
   id,
   name,
   tpl,
   colors,
+  story: STORIES[id],
   tags: { category, color, size },
 });
 
